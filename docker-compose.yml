@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+
+  backend:
+    build:
+      context: ./backend
+    image: llm_validation_backend_v1
+    container_name: llm-test-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - llm-test-network
+
+  frontend:
+    build:
+      context: ./frontend
+    image: llm_validation_frontend_v1
+    container_name: llm-test-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+    networks:
+      - llm-test-network
+
+networks:
+  llm-test-network:
+    driver: bridge

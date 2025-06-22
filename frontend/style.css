@@ -1,0 +1,9 @@
+body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+.container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 32px; }
+h1 { text-align: center; color: #333; }
+label { font-weight: bold; }
+select, button { width: 100%; padding: 10px; margin: 12px 0; border-radius: 4px; border: 1px solid #ccc; }
+.response { background: #f0f0f0; border-radius: 4px; padding: 16px; margin: 16px 0; }
+.result { display: flex; align-items: center; gap: 10px; }
+.pass { color: green; font-weight: bold; }
+.fail { color: red; font-weight: bold; }
