@@ -124,7 +124,8 @@ async def batch_test(request: BatchTestRequest):
 
 @router.get("/models")
 async def get_models():
-    return {"models": llm_service.get_available_models()}
+    models = await llm_service.get_available_models()
+    return {"models": models}
 
 @router.get("/test-cases")
 async def get_test_cases():
