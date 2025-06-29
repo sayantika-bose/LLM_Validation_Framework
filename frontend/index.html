@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,43 +6,150 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OWASP LLM Test Framework</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>OWASP LLM Test Framework</h1>
-        <label for="testcase">Select a test case:</label>
-        <select id="testcase"></select>
-        <button id="runBtn">Run Test</button>
-        <button id="continueBtn" style="display:none; margin-left:10px;">Continue Testing</button>
-        <div id="loading" style="display:none; text-align:center;">Querying model...</div>
-        <div id="responseSection" style="display:none;">
-            <div class="response">
-                <strong>Prompt:</strong> <span id="promptText"></span><br><br>
-                <strong>Model Response:</strong>
-                <div id="modelResponse" style="margin-top:8px;"></div>
+        <header>
+            <h1>🛡️ OWASP LLM Test Framework</h1>
+            <p>Advanced Security Testing for Large Language Models</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('single-test')">Single Test</button>
+            <button class="tab-button" onclick="showTab('multi-model')">Multi-Model Compare</button>
+            <button class="tab-button" onclick="showTab('batch-test')">Batch Testing</button>
+            <button class="tab-button" onclick="showTab('reports')">Reports</button>
+        </div>
+
+        <!-- Single Test Tab -->
+        <div id="single-test" class="tab-content active">
+            <div class="test-controls">
+                <div class="form-group">
+                    <label for="testcase">🎯 Select Test Case:</label>
+                    <select id="testcase"></select>
+                </div>
+                <div class="form-group">
+                    <label for="modelSelect">🤖 Select Model:</label>
+                    <select id="modelSelect"></select>
+                </div>
+                <button id="runBtn" class="btn primary">🚀 Run Test</button>
+                <button id="continueBtn" class="btn secondary" style="display:none;">➡️ Continue Testing</button>
             </div>
-            <div class="result">
-                <input type="checkbox" id="passFail">
-                <label for="passFail">Pass</label>
-                <input type="checkbox" id="failCheck" style="margin-left:20px;">
-                <label for="failCheck">Fail</label>
-                <span id="resultText"></span>
+            
+            <div id="loading" class="loading" style="display:none;">
+                <div class="spinner"></div>
+                <p>Querying model...</p>
+            </div>
+
+            <div id="responseSection" class="response-section" style="display:none;">
+                <div class="response-card">
+                    <h3>📝 Test Results</h3>
+                    <div class="prompt-display">
+                        <strong>Prompt:</strong> <span id="promptText"></span>
+                    </div>
+                    <div class="model-response">
+                        <strong>Model Response:</strong>
+                        <div id="modelResponse"></div>
+                    </div>
+                    <div class="result-controls">
+                        <div class="checkbox-group">
+                            <label class="checkbox-label pass">
+                                <input type="checkbox" id="passFail">
+                                <span class="checkmark">✅</span> Pass
+                            </label>
+                            <label class="checkbox-label fail">
+                                <input type="checkbox" id="failCheck">
+                                <span class="checkmark">❌</span> Fail
+                            </label>
+                        </div>
+                        <span id="resultText" class="result-text"></span>
+                    </div>
+                </div>
             </div>
         </div>
-        <div id="historySection" style="display:none; margin-top:32px;">
-            <h2>Test History</h2>
-            <table id="historyTable" style="width:100%; border-collapse:collapse;">
-                <thead>
-                    <tr style="background:#f0f0f0;">
-                        <th style="padding:8px; border:1px solid #ccc;">Test Case</th>
-                        <th style="padding:8px; border:1px solid #ccc;">Prompt</th>
-                        <th style="padding:8px; border:1px solid #ccc;">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="historyBody"></tbody>
-            </table>
+
+        <!-- Multi-Model Compare Tab -->
+        <div id="multi-model" class="tab-content">
+            <div class="test-controls">
+                <div class="form-group">
+                    <label for="multiTestcase">🎯 Select Test Case:</label>
+                    <select id="multiTestcase"></select>
+                </div>
+                <div class="form-group">
+                    <label>🤖 Select Models for Comparison:</label>
+                    <div id="modelCheckboxes" class="checkbox-container"></div>
+                </div>
+                <button id="runMultiBtn" class="btn primary">🔄 Compare Models</button>
+            </div>
+            
+            <div id="multiLoading" class="loading" style="display:none;">
+                <div class="spinner"></div>
+                <p>Querying multiple models...</p>
+            </div>
+
+            <div id="multiResponseSection" class="response-section" style="display:none;">
+                <h3>📊 Model Comparison Results</h3>
+                <div id="comparisonResults"></div>
+            </div>
+        </div>
+
+        <!-- Batch Testing Tab -->
+        <div id="batch-test" class="tab-content">
+            <div class="test-controls">
+                <div class="form-group">
+                    <label>🎯 Select Test Cases:</label>
+                    <div id="batchTestCases" class="checkbox-container"></div>
+                </div>
+                <div class="form-group">
+                    <label for="batchModel">🤖 Select Model:</label>
+                    <select id="batchModel"></select>
+                </div>
+                <div class="form-group">
+                    <label for="promptsPerCase">📊 Prompts per Case:</label>
+                    <input type="number" id="promptsPerCase" value="3" min="1" max="5">
+                </div>
+                <button id="runBatchBtn" class="btn primary">⚡ Run Batch Test</button>
+            </div>
+            
+            <div id="batchLoading" class="loading" style="display:none;">
+                <div class="spinner"></div>
+                <p>Running batch tests...</p>
+            </div>
+
+            <div id="batchResults" class="batch-results" style="display:none;">
+                <h3>📈 Batch Test Results</h3>
+                <div id="batchSummary" class="summary-cards"></div>
+                <div id="batchDetails" class="batch-details"></div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div id="reports" class="tab-content">
+            <div class="reports-section">
+                <h3>📄 Test History & Reports</h3>
+                <div class="report-controls">
+                    <button id="exportPdfBtn" class="btn primary">📑 Export PDF Report</button>
+                    <button id="clearHistoryBtn" class="btn secondary">🗑️ Clear History</button>
+                </div>
+                <div id="historySection">
+                    <table id="historyTable" class="results-table">
+                        <thead>
+                            <tr>
+                                <th>🕒 Time</th>
+                                <th>🎯 Test Case</th>
+                                <th>🤖 Model</th>
+                                <th>📝 Prompt</th>
+                                <th>✅ Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
+
     <script src="app.js"></script>
 </body>
 </html>
