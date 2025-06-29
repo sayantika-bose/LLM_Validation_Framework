@@ -295,6 +295,9 @@ function displaySingleResponseWithValidation(data) {
     const response = data.response;
     const validation = data.validation;
     
+    // Store validation data globally for history
+    window.currentValidationData = validation;
+    
     const thinkMatch = response.match(/<think>([\s\S]*?)<\/think>/i);
     let mainResponse = response;
     let thinkContent = '';
@@ -638,68 +641,288 @@ function markBatchResult(index, status) {
 function updateHistoryTable() {
     elements.historyBody.innerHTML = '';
     
-    [...testHistory].reverse().forEach(item => {
+    [...testHistory].reverse().forEach((item, index) => {
         const tr = document.createElement('tr');
         const timestamp = new Date(item.timestamp).toLocaleString();
+        
+        // Get validation details if available
+        const validation = item.validation || {};
+        const ruleScore = validation.rule_based?.risk_score || 'N/A';
+        const llmScore = validation.llm_validation?.score || 'N/A';
+        const humanApproval = item.status || 'PENDING';
         
         tr.innerHTML = `
             <td>${timestamp}</td>
             <td>${item.test_case_title}</td>
             <td>🤖 ${item.model_name}</td>
-            <td>${truncateText(item.prompt, 80)}</td>
-            <td><span class="status-${(item.status || 'pending').toLowerCase()}">${item.status || 'PENDING'}</span></td>
+            <td>${truncateText(item.prompt, 60)}</td>
+            <td>
+                <div class="validation-mini">
+                    <span class="mini-score">Rule: ${ruleScore}/5</span>
+                    <span class="mini-score">LLM: ${llmScore}/5</span>
+                </div>
+            </td>
+            <td><span class="status-${humanApproval.toLowerCase()}">${humanApproval}</span></td>
+            <td>
+                <button onclick="viewHistoryDetails(${index})" class="btn btn-small">📊 Details</button>
+            </td>
         `;
         elements.historyBody.appendChild(tr);
     });
 }
 
-// Export to PDF
+// View history details modal
+function viewHistoryDetails(index) {
+    const item = [...testHistory].reverse()[index];
+    if (!item) return;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📊 Test Details</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <div class="detail-section">
+                <h4>🎯 Test Information</h4>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <strong>Test Case:</strong> ${item.test_case_title}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Model:</strong> ${item.model_name}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Timestamp:</strong> ${new Date(item.timestamp).toLocaleString()}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Human Review:</strong> 
+                        <span class="status-${(item.status || 'pending').toLowerCase()}">${item.status || 'PENDING'}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h4>📝 Prompt</h4>
+                <div style="background: white; padding: 15px; border-radius: 8px; font-family: monospace;">
+                    ${item.prompt}
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h4>🤖 Model Response</h4>
+                <div style="background: white; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto;">
+                    ${item.response || 'No response available'}
+                </div>
+            </div>
+            
+            ${item.validation ? `
+                <div class="detail-section">
+                    <h4>🔍 Validation Results</h4>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <strong>Final Status:</strong> 
+                            <span class="status-badge ${item.validation.final_status.toLowerCase()}">${item.validation.final_status}</span>
+                        </div>
+                        <div class="detail-item">
+                            <strong>Confidence:</strong> ${(item.validation.confidence * 100).toFixed(1)}%
+                        </div>
+                        <div class="detail-item">
+                            <strong>Combined Risk Score:</strong> ${item.validation.combined_score.toFixed(1)}/5
+                        </div>
+                        <div class="detail-item">
+                            <strong>Human Review Required:</strong> ${item.validation.requires_human_review ? 'Yes' : 'No'}
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <strong>🔧 Rule-based Analysis:</strong>
+                                <p>Risk Score: ${item.validation.rule_based?.risk_score || 'N/A'}/5</p>
+                                <p>Keywords: ${item.validation.rule_based?.keyword_matches?.join(', ') || 'None'}</p>
+                            </div>
+                            <div class="detail-item">
+                                <strong>🤖 LLM Validation:</strong>
+                                <p>Score: ${item.validation.llm_validation?.score || 'N/A'}/5</p>
+                                <p>Reasoning: ${item.validation.llm_validation?.reasoning || 'N/A'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ` : '<div class="detail-section"><h4>⚠️ No validation data available</h4></div>'}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+}
+
+function closeModal() {
+    const modal = document.querySelector('.modal');
+    if (modal) {
+        modal.style.animation = 'fadeOut 0.3s ease-out';
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    }
+}
+
+// Export to PDF with enhanced template
 function exportToPDF() {
     if (testHistory.length === 0) {
-        alert('No test history to export');
+        showNotification('No test history to export', 'warning');
         return;
     }
     
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    showNotification('Generating PDF report...', 'info');
     
-    // Title
-    doc.setFontSize(20);
-    doc.text('OWASP LLM Test Framework Report', 20, 30);
-    
-    // Summary
-    doc.setFontSize(14);
-    doc.text('Test Summary', 20, 50);
-    doc.setFontSize(10);
+    // Create a hidden div with the report template
+    const reportDiv = document.createElement('div');
+    reportDiv.style.cssText = `
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        width: 800px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: white;
+        padding: 40px;
+    `;
     
     const totalTests = testHistory.length;
     const passedTests = testHistory.filter(t => t.status === 'PASS').length;
     const failedTests = testHistory.filter(t => t.status === 'FAIL').length;
     const pendingTests = testHistory.filter(t => !t.status || t.status === 'PENDING').length;
+    const reviewTests = testHistory.filter(t => t.status === 'REVIEW').length;
     
-    doc.text(`Total Tests: ${totalTests}`, 20, 65);
-    doc.text(`Passed: ${passedTests}`, 20, 75);
-    doc.text(`Failed: ${failedTests}`, 20, 85);
-    doc.text(`Pending: ${pendingTests}`, 20, 95);
+    // Calculate validation statistics
+    const testsWithValidation = testHistory.filter(t => t.validation);
+    const avgRuleScore = testsWithValidation.length > 0 ? 
+        (testsWithValidation.reduce((sum, t) => sum + (t.validation.rule_based?.risk_score || 0), 0) / testsWithValidation.length).toFixed(1) : 'N/A';
+    const avgLlmScore = testsWithValidation.length > 0 ?
+        (testsWithValidation.reduce((sum, t) => sum + (t.validation.llm_validation?.score || 0), 0) / testsWithValidation.length).toFixed(1) : 'N/A';
     
-    // Test details
-    doc.text('Test Details', 20, 115);
-    let yPos = 130;
-    
-    testHistory.forEach((test, index) => {
-        if (yPos > 250) {
-            doc.addPage();
-            yPos = 30;
-        }
+    reportDiv.innerHTML = `
+        <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #4facfe; padding-bottom: 20px;">
+            <h1 style="color: #1e293b; font-size: 28px; margin: 0;">🛡️ OWASP LLM Security Test Report</h1>
+            <p style="color: #64748b; font-size: 16px; margin: 10px 0 0 0;">Generated on ${new Date().toLocaleDateString()}</p>
+        </div>
         
-        doc.text(`${index + 1}. ${test.test_case_title} - ${test.model_name}`, 20, yPos);
-        doc.text(`Status: ${test.status || 'PENDING'}`, 25, yPos + 10);
-        doc.text(`Prompt: ${truncateText(test.prompt, 100)}`, 25, yPos + 20);
-        yPos += 35;
-    });
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
+            <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                <h3 style="margin: 0; font-size: 18px;">📊 Total Tests</h3>
+                <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">${totalTests}</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                <h3 style="margin: 0; font-size: 18px;">✅ Passed</h3>
+                <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">${passedTests}</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                <h3 style="margin: 0; font-size: 18px;">❌ Failed</h3>
+                <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">${failedTests}</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                <h3 style="margin: 0; font-size: 18px;">🔍 Review</h3>
+                <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">${reviewTests}</div>
+            </div>
+        </div>
+        
+        <div style="background: #f8fafc; padding: 25px; border-radius: 10px; margin-bottom: 30px;">
+            <h2 style="color: #1e293b; margin: 0 0 20px 0;">📈 Validation Statistics</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 14px; color: #64748b;">Avg Rule-based Score</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #4facfe;">${avgRuleScore}/5</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 14px; color: #64748b;">Avg LLM Score</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #4facfe;">${avgLlmScore}/5</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 14px; color: #64748b;">Tests with Validation</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #4facfe;">${testsWithValidation.length}</div>
+                </div>
+            </div>
+        </div>
+        
+        <h2 style="color: #1e293b; margin: 30px 0 20px 0;">📋 Detailed Test Results</h2>
+        
+        ${testHistory.map((test, index) => `
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 20px; overflow: hidden;">
+                <div style="background: #f1f5f9; padding: 15px; border-bottom: 1px solid #e2e8f0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; color: #1e293b;">${index + 1}. ${test.test_case_title}</h3>
+                        <span style="padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 12px; color: white; background: ${
+                            test.status === 'PASS' ? '#10b981' : 
+                            test.status === 'FAIL' ? '#ef4444' : 
+                            test.status === 'REVIEW' ? '#f59e0b' : '#64748b'
+                        };">${test.status || 'PENDING'}</span>
+                    </div>
+                    <div style="font-size: 14px; color: #64748b; margin-top: 5px;">
+                        🤖 ${test.model_name} • ⏰ ${new Date(test.timestamp).toLocaleString()}
+                    </div>
+                </div>
+                
+                <div style="padding: 20px;">
+                    <div style="margin-bottom: 15px;">
+                        <strong style="color: #374151;">Prompt:</strong>
+                        <div style="background: #f8fafc; padding: 10px; border-radius: 6px; margin-top: 5px; font-family: monospace; font-size: 13px;">
+                            ${test.prompt}
+                        </div>
+                    </div>
+                    
+                    ${test.validation ? `
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px;">
+                            <div style="background: #f0f9ff; padding: 12px; border-radius: 6px;">
+                                <strong style="color: #1e40af;">🔧 Rule-based Analysis</strong>
+                                <div style="font-size: 13px; margin-top: 5px;">
+                                    Risk Score: <strong>${test.validation.rule_based?.risk_score || 'N/A'}/5</strong><br>
+                                    Keywords: ${test.validation.rule_based?.keyword_matches?.join(', ') || 'None'}
+                                </div>
+                            </div>
+                            <div style="background: #f0fdf4; padding: 12px; border-radius: 6px;">
+                                <strong style="color: #166534;">🤖 LLM Validation</strong>
+                                <div style="font-size: 13px; margin-top: 5px;">
+                                    Score: <strong>${test.validation.llm_validation?.score || 'N/A'}/5</strong><br>
+                                    Confidence: ${(test.validation.confidence * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                    ` : '<div style="color: #64748b; font-style: italic;">No validation data available</div>'}
+                </div>
+            </div>
+        `).join('')}
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; color: #64748b;">
+            <p>Generated by OWASP LLM Test Framework</p>
+        </div>
+    `;
     
-    // Save
-    doc.save('owasp-llm-test-report.pdf');
+    document.body.appendChild(reportDiv);
+    
+    // Use html2pdf to generate PDF
+    setTimeout(() => {
+        html2pdf().from(reportDiv).set({
+            margin: 1,
+            filename: `owasp-llm-security-report-${new Date().toISOString().split('T')[0]}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        }).save().then(() => {
+            document.body.removeChild(reportDiv);
+            showNotification('PDF report generated successfully!', 'success');
+        }).catch(() => {
+            document.body.removeChild(reportDiv);
+            showNotification('Failed to generate PDF. Please try again.', 'error');
+        });
+    }, 100);
 }
 
 // Clear history
@@ -756,12 +979,17 @@ function handleStatusChange(status) {
 function markStatus(status) {
     if (!currentCase || !currentPrompt || !currentModel) return;
     
+    // Get validation data if available
+    const responseElement = elements.modelResponse;
+    const validationData = window.currentValidationData || null;
+    
     testHistory.push({
         test_case_id: currentCase.id,
         test_case_title: currentCase.title,
         prompt: currentPrompt,
         model_name: currentModel,
-        response: elements.modelResponse.querySelector('.main-response')?.textContent || '',
+        response: responseElement.querySelector('.main-response')?.textContent || responseElement.textContent || '',
+        validation: validationData,
         status: status,
         timestamp: new Date().toISOString()
     });

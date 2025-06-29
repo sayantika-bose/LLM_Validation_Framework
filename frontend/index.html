@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,7 +35,7 @@
                 <button id="runBtn" class="btn primary">🚀 Run Test</button>
                 <button id="continueBtn" class="btn secondary" style="display:none;">➡️ Continue Testing</button>
             </div>
-            
+
             <div id="loading" class="loading" style="display:none;">
                 <div class="spinner"></div>
                 <p>Querying model...</p>
@@ -82,7 +81,7 @@
                 </div>
                 <button id="runMultiBtn" class="btn primary">🔄 Compare Models</button>
             </div>
-            
+
             <div id="multiLoading" class="loading" style="display:none;">
                 <div class="spinner"></div>
                 <p>Querying multiple models...</p>
@@ -111,7 +110,7 @@
                 </div>
                 <button id="runBatchBtn" class="btn primary">⚡ Run Batch Test</button>
             </div>
-            
+
             <div id="batchLoading" class="loading" style="display:none;">
                 <div class="spinner"></div>
                 <p>Running batch tests...</p>
@@ -133,14 +132,16 @@
                     <button id="clearHistoryBtn" class="btn secondary">🗑️ Clear History</button>
                 </div>
                 <div id="historySection">
-                    <table id="historyTable" class="results-table">
+                    <table class="results-table">
                         <thead>
                             <tr>
-                                <th>🕒 Time</th>
+                                <th>⏰ Timestamp</th>
                                 <th>🎯 Test Case</th>
                                 <th>🤖 Model</th>
                                 <th>📝 Prompt</th>
-                                <th>✅ Status</th>
+                                <th>🔍 Validation Scores</th>
+                                <th>👤 Human Review</th>
+                                <th>⚙️ Actions</th>
                             </tr>
                         </thead>
                         <tbody id="historyBody"></tbody>
