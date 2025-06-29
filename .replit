@@ -1,0 +1,8 @@
+modules = ["nodejs-20", "python-3.12", "web"]
+run = "docker-compose up --build"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "docker-compose up --build"]
