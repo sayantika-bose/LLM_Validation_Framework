@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, HTTPException
 from app.models.prompt import (
     PromptRequest, PromptResponse, MultiModelRequest, MultiModelResponse,
@@ -102,10 +101,10 @@ async def batch_test(request: BatchTestRequest):
             case = next((tc for tc in test_cases if tc["id"] == case_id), None)
             if not case:
                 continue
-                
+
             selected_prompts = random.sample(case["prompts"], 
                                            min(request.prompts_per_case, len(case["prompts"])))
-            
+
             for prompt in selected_prompts:
                 response = await llm_service.get_response(prompt, request.model_name)
                 results.append({
@@ -116,7 +115,7 @@ async def batch_test(request: BatchTestRequest):
                     "response": response,
                     "timestamp": datetime.now().isoformat()
                 })
-        
+
         return {"results": results}
     except Exception as e:
         logging.error(f"Error in batch test: {e}")
@@ -124,8 +123,15 @@ async def batch_test(request: BatchTestRequest):
 
 @router.get("/models")
 async def get_models():
-    models = await llm_service.get_available_models()
-    return {"models": models}
+    """Get available models"""
+    available_models = await llm_service.get_available_models()
+    return {"models": available_models}
+
+@router.get("/models/all")
+async def get_all_models():
+    """Get all configured models regardless of availability"""
+    all_models = list(llm_service.models.keys())
+    return {"models": all_models}
 
 @router.get("/test-cases")
 async def get_test_cases():

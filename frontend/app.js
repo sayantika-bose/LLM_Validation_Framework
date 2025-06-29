@@ -108,6 +108,18 @@ async function loadModels() {
         const response = await fetch('http://localhost:8000/api/models');
         const data = await response.json();
         availableModels = data.models;
+        
+        // If we only get deepseek-r1, try the all models endpoint
+        if (availableModels.length === 1 && availableModels[0] === 'deepseek-r1') {
+            try {
+                const allResponse = await fetch('http://localhost:8000/api/models/all');
+                const allData = await allResponse.json();
+                availableModels = allData.models;
+                console.log('Using all configured models as fallback');
+            } catch (e) {
+                console.log('Could not fetch all models, using available ones');
+            }
+        }
     } catch (error) {
         console.error('Failed to load models:', error);
         availableModels = ['deepseek-r1', 'qwen3', 'llama3.2', 'gemma2']; // Fallback
