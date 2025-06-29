@@ -7,12 +7,11 @@ from typing import Dict, List, Any
 class LLMService:
     def __init__(self):
         logging.info("Initializing LLMService and loading models...")
-        # Updated model configurations with correct model names
         self.models = {
-            "deepseek-r1": OllamaLLM(model="deepseek-r1", base_url="http://host.docker.internal:11434"),
-            "qwen3": OllamaLLM(model="qwen2.5", base_url="http://host.docker.internal:11434"),  # Common Qwen model
-            "llama3.2": OllamaLLM(model="llama3.2", base_url="http://host.docker.internal:11434"),
-            "gemma2": OllamaLLM(model="gemma2", base_url="http://host.docker.internal:11434")
+            "deepseek-r1": OllamaLLM(model="deepseek-r1:1.5b", base_url="http://host.docker.internal:11434"),
+            "qwen3": OllamaLLM(model="qwen3:0.6b", base_url="http://host.docker.internal:11434"),
+            "llama3.2": OllamaLLM(model="llama3.2:1b" , base_url="http://host.docker.internal:11434"),
+            "gemma2": OllamaLLM(model="gemma2:2b" , base_url="http://host.docker.internal:11434")
         }
         self.prompt_template = self._load_prompt_template()
         logging.info("LLMService initialized successfully.")
@@ -60,29 +59,5 @@ class LLMService:
                 responses[model_name] = f"Error: {str(e)}"
         return responses
 
-    async def check_model_availability(self, model_name: str) -> bool:
-        """Check if a model is available on the Ollama server"""
-        try:
-            if model_name not in self.models:
-                return False
-            # Try a minimal test prompt to check if model is available
-            test_response = self.models[model_name].invoke("Hi")
-            logging.info(f"Model {model_name} is available - test response: {str(test_response)[:50]}...")
-            return True
-        except Exception as e:
-            logging.warning(f"Model {model_name} not available: {e}")
-            return False
-
-    async def get_available_models(self) -> List[str]:
-        """Get list of actually available models by testing each one"""
-        available = []
-        for model_name in self.models.keys():
-            if await self.check_model_availability(model_name):
-                available.append(model_name)
-        
-        # If no models are available through testing, return all models for user to try
-        if not available:
-            logging.warning("No models passed availability check, returning all configured models")
-            return list(self.models.keys())
-        
-        return available
+    def get_available_models(self) -> List[str]:
+        return list(self.models.keys())
