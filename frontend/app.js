@@ -908,21 +908,22 @@ function exportToPDF() {
     document.body.appendChild(reportDiv);
     
     // Use html2pdf to generate PDF
-    setTimeout(() => {
-        html2pdf().from(reportDiv).set({
-            margin: 1,
-            filename: `owasp-llm-security-report-${new Date().toISOString().split('T')[0]}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-        }).save().then(() => {
-            document.body.removeChild(reportDiv);
-            showNotification('PDF report generated successfully!', 'success');
-        }).catch(() => {
-            document.body.removeChild(reportDiv);
-            showNotification('Failed to generate PDF. Please try again.', 'error');
-        });
-    }, 100);
+    const opt = {
+        margin: 1,
+        filename: `owasp-llm-security-report-${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(reportDiv).save().then(() => {
+        document.body.removeChild(reportDiv);
+        showNotification('PDF report generated successfully!', 'success');
+    }).catch((error) => {
+        console.error('PDF generation error:', error);
+        document.body.removeChild(reportDiv);
+        showNotification('Failed to generate PDF. Please try again.', 'error');
+    });
 }
 
 // Clear history
