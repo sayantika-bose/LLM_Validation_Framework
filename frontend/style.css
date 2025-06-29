@@ -497,6 +497,109 @@ header p {
 .checkbox-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+
+
+/* Validation Results Styling */
+.validation-results {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border-left: 4px solid #3b82f6;
+}
+
+.validation-summary {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.status-badge {
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.status-badge.pass {
+    background: #10b981;
+    color: white;
+}
+
+.status-badge.fail {
+    background: #ef4444;
+    color: white;
+}
+
+.status-badge.review {
+    background: #f59e0b;
+    color: white;
+}
+
+.confidence-score, .combined-score {
+    padding: 5px 10px;
+    background: white;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #e2e8f0;
+}
+
+.validation-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.rule-based-results, .llm-validation-results {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.rule-based-results h5, .llm-validation-results h5 {
+    margin: 0 0 10px 0;
+    color: #1e293b;
+    font-size: 1rem;
+}
+
+.rule-based-results p, .llm-validation-results p {
+    margin: 8px 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.human-review-notice {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: bold;
+    margin-top: 15px;
+    border: 1px solid #fbbf24;
+}
+
+.result-text.review {
+    color: #f59e0b;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .validation-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .validation-summary {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
     gap: 15px;
     margin: 15px 0;
 }

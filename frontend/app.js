@@ -899,5 +899,126 @@ async function init() {
     showNotification('OWASP LLM Test Framework loaded successfully!', 'success');
 }
 
+// Enhanced testing with validation
+async function runTestWithValidation() {
+    const selectedId = parseInt(elements.testcase.value);
+    const modelName = elements.modelSelect.value;
+    
+    if (!modelName) {
+        alert('Please select a model');
+        return;
+    }
+    
+    const selected = testCases.find(tc => tc.id === selectedId);
+    if (!selected) return;
+    
+    const prompt = getRandomPrompt(selected);
+    
+    showLoading(elements.loading);
+    hideElement(elements.responseSection);
+    
+    try {
+        const response = await fetch('http://localhost:8000/api/ask-with-validation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt: prompt,
+                model_name: modelName
+            })
+        });
+        
+        hideElement(elements.loading);
+        
+        if (response.ok) {
+            const data = await response.json();
+            displayEnhancedResponse(selected.title, prompt, data);
+        } else {
+            displayError(await response.text());
+        }
+    } catch (error) {
+        hideElement(elements.loading);
+        displayError(error.message);
+    }
+}
+
+// Display enhanced response with validation results
+function displayEnhancedResponse(testTitle, prompt, data) {
+    elements.promptText.textContent = prompt;
+    elements.modelResponse.innerHTML = `
+        <div class="response-content">${escapeHtml(data.response)}</div>
+        
+        <div class="validation-results">
+            <h4>🔍 Validation Results</h4>
+            <div class="validation-summary">
+                <div class="status-badge ${data.validation.final_status.toLowerCase()}">
+                    ${data.validation.final_status}
+                </div>
+                <div class="confidence-score">
+                    Confidence: ${(data.validation.confidence * 100).toFixed(1)}%
+                </div>
+                <div class="combined-score">
+                    Risk Score: ${data.validation.combined_score.toFixed(1)}/5
+                </div>
+            </div>
+            
+            <div class="validation-details">
+                <div class="rule-based-results">
+                    <h5>Rule-based Analysis:</h5>
+                    <p>Risk Keywords: ${data.validation.rule_based.keyword_matches.join(', ') || 'None detected'}</p>
+                    <p>Security Indicators: ${data.validation.rule_based.indicator_matches.join(', ') || 'None detected'}</p>
+                </div>
+                
+                <div class="llm-validation-results">
+                    <h5>LLM Validation:</h5>
+                    <p><strong>Score:</strong> ${data.validation.llm_validation.score}/5</p>
+                    <p><strong>Reasoning:</strong> ${data.validation.llm_validation.reasoning}</p>
+                    <p><strong>Security Concerns:</strong> ${data.validation.llm_validation.security_concerns.join(', ')}</p>
+                    <p><strong>Recommendations:</strong> ${data.validation.llm_validation.recommendations}</p>
+                </div>
+            </div>
+            
+            ${data.validation.requires_human_review ? 
+                '<div class="human-review-notice">⚠️ This response requires human review</div>' : 
+                ''
+            }
+        </div>
+    `;
+    
+    showElement(elements.responseSection);
+    
+    // Update test history with validation data
+    const testResult = {
+        testCase: testTitle,
+        prompt: prompt,
+        response: data.response,
+        validation: data.validation,
+        timestamp: new Date().toLocaleString()
+    };
+    
+    testHistory.unshift(testResult);
+    updateHistoryTable();
+    
+    // Auto-set pass/fail based on validation
+    const passFail = elements.passFail;
+    const failCheck = elements.failCheck;
+    
+    if (data.validation.final_status === 'PASS') {
+        passFail.checked = true;
+        failCheck.checked = false;
+        elements.resultText.textContent = 'PASS - Validation Passed';
+        elements.resultText.className = 'result-text pass';
+    } else if (data.validation.final_status === 'FAIL') {
+        passFail.checked = false;
+        failCheck.checked = true;
+        elements.resultText.textContent = 'FAIL - Security Issues Detected';
+        elements.resultText.className = 'result-text fail';
+    } else {
+        passFail.checked = false;
+        failCheck.checked = false;
+        elements.resultText.textContent = 'REVIEW - Manual Review Required';
+        elements.resultText.className = 'result-text review';
+    }
+}
+
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', init);

@@ -4,6 +4,7 @@ from app.models.prompt import (
     BatchTestRequest, BatchTestResponse, TestResult, ReportRequest
 )
 from app.services.llm_service import LLMService
+from app.services.validator_service import ValidatorService
 import logging
 from datetime import datetime
 from typing import List
@@ -11,6 +12,7 @@ import random
 
 router = APIRouter()
 llm_service = LLMService()
+validator_service = ValidatorService()
 
 # Test cases data
 test_cases = [
@@ -136,3 +138,52 @@ async def get_all_models():
 @router.get("/test-cases")
 async def get_test_cases():
     return {"test_cases": [{"id": tc["id"], "title": tc["title"]} for tc in test_cases]}
+
+
+@router.post("/ask-with-validation", response_model=dict)
+async def ask_with_validation(request: PromptRequest):
+    """Enhanced endpoint that includes comprehensive validation"""
+    logging.info(f"Received validation request with prompt: {request.prompt}")
+    try:
+        # Get LLM response
+        response = await llm_service.get_response(request.prompt, request.model_name)
+        
+        # Determine test case ID based on prompt content (simplified approach)
+        test_case_id = 1  # Default to prompt injection, could be enhanced with ML classification
+        
+        # Perform comprehensive validation
+        validation_result = await validator_service.comprehensive_validate(
+            request.prompt, response, test_case_id
+        )
+        
+        return {
+            "response": response,
+            "validation": validation_result,
+            "model_name": request.model_name,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Error in /api/ask-with-validation: {e}")
+        raise HTTPException(status_code=500, detail="Validation error.")
+
+@router.post("/validate-response", response_model=dict)
+async def validate_existing_response(request: dict):
+    """Validate an existing response against OWASP criteria"""
+    try:
+        prompt = request.get("prompt", "")
+        response = request.get("response", "")
+        test_case_id = request.get("test_case_id", 1)
+        
+        validation_result = await validator_service.comprehensive_validate(
+            prompt, response, test_case_id
+        )
+        
+        return {
+            "validation": validation_result,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Error in /api/validate-response: {e}")
+        raise HTTPException(status_code=500, detail="Validation error.")
