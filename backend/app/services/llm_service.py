@@ -11,7 +11,7 @@ class LLMService:
             "deepseek-r1": OllamaLLM(model="deepseek-r1:1.5b", base_url="http://host.docker.internal:11434"),
             "qwen3": OllamaLLM(model="qwen3:0.6b", base_url="http://host.docker.internal:11434"),
             "llama3.2": OllamaLLM(model="llama3.2:1b" , base_url="http://host.docker.internal:11434"),
-            "gemma2": OllamaLLM(model="gemma2:2b" , base_url="http://host.docker.internal:11434")
+            "gemma2": OllamaLLM(model="gemma:2b" , base_url="http://host.docker.internal:11434")
         }
         self.prompt_template = self._load_prompt_template()
         logging.info("LLMService initialized successfully.")
