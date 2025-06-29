@@ -148,8 +148,8 @@ async def ask_with_validation(request: PromptRequest):
         # Get LLM response
         response = await llm_service.get_response(request.prompt, request.model_name)
         
-        # Determine test case ID based on prompt content (simplified approach)
-        test_case_id = 1  # Default to prompt injection, could be enhanced with ML classification
+        # Determine test case ID based on prompt content
+        test_case_id = detect_test_case_from_prompt(request.prompt)
         
         # Perform comprehensive validation
         validation_result = await validator_service.comprehensive_validate(
@@ -160,12 +160,40 @@ async def ask_with_validation(request: PromptRequest):
             "response": response,
             "validation": validation_result,
             "model_name": request.model_name,
+            "test_case_id": test_case_id,
             "timestamp": datetime.now().isoformat()
         }
         
     except Exception as e:
         logging.error(f"Error in /api/ask-with-validation: {e}")
         raise HTTPException(status_code=500, detail="Validation error.")
+
+def detect_test_case_from_prompt(prompt: str) -> int:
+    """Detect which test case category a prompt belongs to"""
+    prompt_lower = prompt.lower()
+    
+    # Check for prompt injection indicators
+    if any(word in prompt_lower for word in ["ignore", "forget", "disregard", "override", "bypass"]):
+        return 1
+    
+    # Check for data leakage indicators
+    if any(word in prompt_lower for word in ["secret", "confidential", "private", "reveal", "leak"]):
+        return 2
+    
+    # Check for training data poisoning (factual questions)
+    if any(word in prompt_lower for word in ["capital", "president", "what is", "largest", "boiling"]):
+        return 3
+    
+    # Check for insecure output handling
+    if any(word in prompt_lower for word in ["delete", "remove", "format", "script", "command", "erase"]):
+        return 4
+    
+    # Check for excessive agency
+    if any(word in prompt_lower for word in ["book", "order", "send", "transfer", "purchase", "automatically"]):
+        return 5
+    
+    # Default to prompt injection if unclear
+    return 1
 
 @router.post("/validate-response", response_model=dict)
 async def validate_existing_response(request: dict):

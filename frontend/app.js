@@ -256,7 +256,7 @@ async function runSingleTest() {
     resetResultChecks();
     
     try {
-        const response = await fetch('http://localhost:8000/api/ask', {
+        const response = await fetch('http://localhost:8000/api/ask-with-validation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -271,8 +271,8 @@ async function runSingleTest() {
         
         if (response.ok) {
             const data = await response.json();
-            displaySingleResponse(data.response);
-            showNotification('Test completed successfully!', 'success');
+            displaySingleResponseWithValidation(data);
+            showNotification('Test completed with validation!', 'success');
         } else {
             const errorText = await response.text();
             displayError(errorText);
@@ -287,11 +287,14 @@ async function runSingleTest() {
     }
 }
 
-// Display single test response
-function displaySingleResponse(response) {
+// Display single test response with validation results
+function displaySingleResponseWithValidation(data) {
     elements.promptText.textContent = currentPrompt;
     
-    // Handle think tags
+    // Handle think tags in response
+    const response = data.response;
+    const validation = data.validation;
+    
     const thinkMatch = response.match(/<think>([\s\S]*?)<\/think>/i);
     let mainResponse = response;
     let thinkContent = '';
@@ -301,8 +304,48 @@ function displaySingleResponse(response) {
         mainResponse = response.replace(thinkMatch[0], '').trim();
     }
     
+    // Get status color class
+    const statusClass = validation.final_status.toLowerCase();
+    
     elements.modelResponse.innerHTML = `
         <div class="main-response">${formatResponse(mainResponse)}</div>
+        
+        <div class="validation-results">
+            <h4>🔍 Security Validation Results</h4>
+            <div class="validation-summary">
+                <div class="status-badge ${statusClass}">
+                    ${validation.final_status}
+                </div>
+                <div class="confidence-score">
+                    Confidence: ${(validation.confidence * 100).toFixed(1)}%
+                </div>
+                <div class="combined-score">
+                    Risk Score: ${validation.combined_score.toFixed(1)}/5
+                </div>
+            </div>
+            
+            <div class="validation-details">
+                <div class="rule-based-results">
+                    <h5>🔧 Rule-based Analysis:</h5>
+                    <p><strong>Risk Keywords:</strong> ${validation.rule_based.keyword_matches.length > 0 ? validation.rule_based.keyword_matches.join(', ') : 'None detected'}</p>
+                    <p><strong>Security Indicators:</strong> ${validation.rule_based.indicator_matches.length > 0 ? validation.rule_based.indicator_matches.join(', ') : 'None detected'}</p>
+                    <p><strong>Risk Level:</strong> ${validation.rule_based.risk_score}/5</p>
+                </div>
+                
+                <div class="llm-validation-results">
+                    <h5>🤖 LLM Security Analysis:</h5>
+                    <p><strong>Score:</strong> ${validation.llm_validation.score}/5</p>
+                    <p><strong>Reasoning:</strong> ${validation.llm_validation.reasoning}</p>
+                    <p><strong>Security Concerns:</strong> ${validation.llm_validation.security_concerns.join(', ')}</p>
+                    <p><strong>Recommendations:</strong> ${validation.llm_validation.recommendations}</p>
+                </div>
+            </div>
+            
+            ${validation.requires_human_review ? 
+                '<div class="human-review-notice">⚠️ This response requires human review</div>' : 
+                ''
+            }
+        </div>
     `;
     
     if (thinkContent) {
@@ -318,6 +361,24 @@ function displaySingleResponse(response) {
         
         elements.modelResponse.appendChild(thinkToggle);
         elements.modelResponse.appendChild(thinkDiv);
+    }
+    
+    // Auto-set pass/fail based on validation
+    if (validation.final_status === 'PASS') {
+        elements.passFail.checked = true;
+        elements.failCheck.checked = false;
+        elements.resultText.textContent = 'PASS - Validation Passed';
+        elements.resultText.className = 'result-text pass';
+    } else if (validation.final_status === 'FAIL') {
+        elements.passFail.checked = false;
+        elements.failCheck.checked = true;
+        elements.resultText.textContent = 'FAIL - Security Issues Detected';
+        elements.resultText.className = 'result-text fail';
+    } else {
+        elements.passFail.checked = false;
+        elements.failCheck.checked = false;
+        elements.resultText.textContent = 'REVIEW - Manual Review Required';
+        elements.resultText.className = 'result-text review';
     }
     
     showElement(elements.responseSection);
