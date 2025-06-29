@@ -163,7 +163,7 @@ function populateSelectors() {
 
 // Setup event listeners
 function setupEventListeners() {
-    // Tab switching
+    // Tab switching with enhanced animation
     document.querySelectorAll('.tab-button').forEach(button => {
         button.addEventListener('click', (e) => {
             const tabName = e.target.getAttribute('onclick').match(/'([^']+)'/)[1];
@@ -171,21 +171,27 @@ function setupEventListeners() {
         });
     });
     
-    // Single test
+    // Single test with loading states
     elements.runBtn.addEventListener('click', runSingleTest);
     elements.continueBtn.addEventListener('click', continueTesting);
     elements.passFail.addEventListener('change', () => handleStatusChange('PASS'));
     elements.failCheck.addEventListener('change', () => handleStatusChange('FAIL'));
     
-    // Multi-model test
+    // Multi-model test with validation
     elements.runMultiBtn.addEventListener('click', runMultiModelTest);
     
-    // Batch test
+    // Batch test with progress feedback
     elements.runBatchBtn.addEventListener('click', runBatchTest);
     
-    // Reports
+    // Reports with confirmation
     elements.exportPdfBtn.addEventListener('click', exportToPDF);
     elements.clearHistoryBtn.addEventListener('click', clearHistory);
+    
+    // Add real-time form validation
+    setupFormValidation();
+    
+    // Add keyboard shortcuts
+    setupKeyboardShortcuts();
 }
 
 // Tab switching function
@@ -209,17 +215,29 @@ function getRandomPrompt(tc) {
     return tc.prompts[idx];
 }
 
-// Single test functionality
+// Single test functionality with enhanced UX
 async function runSingleTest() {
     const selectedId = parseInt(elements.testcaseSelect.value);
     const selectedModel = elements.modelSelect.value;
     const selected = testCases.find(tc => tc.id === selectedId);
     
-    if (!selected) return;
+    if (!selected) {
+        showNotification('Please select a test case', 'error');
+        return;
+    }
+    
+    if (!selectedModel) {
+        showNotification('Please select a model', 'error');
+        return;
+    }
     
     currentCase = selected;
     currentModel = selectedModel;
     currentPrompt = getRandomPrompt(selected);
+    
+    // Add loading state to button
+    elements.runBtn.classList.add('loading');
+    elements.runBtn.disabled = true;
     
     showLoading(elements.loading);
     hideElement(elements.responseSection);
@@ -236,16 +254,24 @@ async function runSingleTest() {
         });
         
         hideElement(elements.loading);
+        elements.runBtn.classList.remove('loading');
+        elements.runBtn.disabled = false;
         
         if (response.ok) {
             const data = await response.json();
             displaySingleResponse(data.response);
+            showNotification('Test completed successfully!', 'success');
         } else {
-            displayError(await response.text());
+            const errorText = await response.text();
+            displayError(errorText);
+            showNotification('Test failed. Please try again.', 'error');
         }
     } catch (error) {
         hideElement(elements.loading);
+        elements.runBtn.classList.remove('loading');
+        elements.runBtn.disabled = false;
         displayError(error.message);
+        showNotification('Connection error. Please check your connection.', 'error');
     }
 }
 
@@ -372,8 +398,21 @@ async function runBatchTest() {
         return;
     }
     
+    // Enhanced loading with progress
+    elements.batchLoading.innerHTML = `
+        <div class="spinner"></div>
+        <p>Running batch tests...</p>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%"></div>
+        </div>
+        <p class="progress-text">Preparing tests...</p>
+    `;
     showLoading(elements.batchLoading);
     hideElement(elements.batchResults);
+    
+    // Disable button during testing
+    elements.runBatchBtn.disabled = true;
+    elements.runBatchBtn.classList.add('loading');
     
     try {
         const response = await fetch('http://localhost:8000/api/batch-test', {
@@ -387,10 +426,13 @@ async function runBatchTest() {
         });
         
         hideElement(elements.batchLoading);
+        elements.runBatchBtn.disabled = false;
+        elements.runBatchBtn.classList.remove('loading');
         
         if (response.ok) {
             const data = await response.json();
             displayBatchResults(data.results);
+            showNotification(`Batch test completed! ${data.results.length} tests executed.`, 'success');
             
             // Add to history
             data.results.forEach(result => {
@@ -691,6 +733,158 @@ function displayBatchError(message) {
 
 function saveHistory() {
     localStorage.setItem('testHistory', JSON.stringify(testHistory));
+}
+
+// Notification system
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        animation: slideInRight 0.3s ease-out;
+        max-width: 300px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    `;
+    
+    switch(type) {
+        case 'success':
+            notification.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            break;
+        case 'error':
+            notification.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+            break;
+        case 'warning':
+            notification.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            break;
+        default:
+            notification.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+    }
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease-out';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Form validation
+function setupFormValidation() {
+    // Add visual feedback for form selections
+    [elements.testcaseSelect, elements.modelSelect].forEach(select => {
+        select.addEventListener('change', (e) => {
+            if (e.target.value) {
+                e.target.style.borderColor = '#10b981';
+                e.target.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+            }
+        });
+    });
+}
+
+// Keyboard shortcuts
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd + Enter to run single test
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab && activeTab.id === 'single-test') {
+                runSingleTest();
+            }
+        }
+        
+        // Escape to close notifications
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.notification').forEach(notification => {
+                notification.style.animation = 'slideOutRight 0.3s ease-out';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            });
+        }
+    });
+}
+
+// Enhanced model selection with availability check
+async function checkModelAvailability() {
+    try {
+        const response = await fetch('http://localhost:8000/api/models');
+        const data = await response.json();
+        
+        // Update model selectors with availability status
+        updateModelSelectorsWithStatus(data.models);
+        
+        if (data.models.length === 0) {
+            showNotification('No models available. Please check your Ollama installation.', 'warning');
+        }
+    } catch (error) {
+        showNotification('Could not check model availability', 'warning');
+    }
+}
+
+function updateModelSelectorsWithStatus(availableModels) {
+    [elements.modelSelect, elements.batchModel].forEach(select => {
+        Array.from(select.options).forEach(option => {
+            if (availableModels.includes(option.value)) {
+                option.textContent = `🟢 ${option.textContent.replace(/^[🟢🔴] /, '')}`;
+            } else {
+                option.textContent = `🔴 ${option.textContent.replace(/^[🟢🔴] /, '')} (Unavailable)`;
+                option.disabled = true;
+            }
+        });
+    });
+}
+
+// Add CSS animations for notifications
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideOutRight {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Enhanced initialization
+async function init() {
+    await loadModels();
+    populateSelectors();
+    setupEventListeners();
+    updateHistoryTable();
+    await checkModelAvailability();
+    showNotification('OWASP LLM Test Framework loaded successfully!', 'success');
 }
 
 // Initialize app when DOM is loaded
