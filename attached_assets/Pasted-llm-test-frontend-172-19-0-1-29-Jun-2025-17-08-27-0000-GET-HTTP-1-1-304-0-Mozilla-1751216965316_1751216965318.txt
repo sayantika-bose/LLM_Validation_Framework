@@ -1,0 +1,19 @@
+llm-test-frontend  | 172.19.0.1 - - [29/Jun/2025:17:08:27 +0000] "GET / HTTP/1.1" 304 0 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" "-"       
+llm-test-frontend  | 172.19.0.1 - - [29/Jun/2025:17:08:27 +0000] "GET /style.css HTTP/1.1" 304 0 "http://localhost/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" "-"
+llm-test-frontend  | 172.19.0.1 - - [29/Jun/2025:17:08:27 +0000] "GET /app.js HTTP/1.1" 304 0 "http://localhost/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" "-"
+llm-test-backend   | WARNING:root:Model deepseek-r1 not available: model 'deepseek-r1' not found (status code: 404)
+llm-test-backend   | WARNING:root:Model qwen3 not available: model 'qwen2.5' not found (status code: 404)
+llm-test-backend   | WARNING:root:Model llama3.2 not available: model 'llama3.2' not found (status code: 404)
+llm-test-backend   | WARNING:root:Model gemma2 not available: model 'gemma2' not found (status code: 404)
+llm-test-backend   | WARNING:root:No models passed availability check, returning all configured models
+llm-test-backend   | INFO:     172.19.0.1:51394 - "GET /api/models HTTP/1.1" 200 OK                         
+llm-test-backend   | WARNING:root:Model deepseek-r1 not available: model 'deepseek-r1' not found (status code: 404)
+llm-test-backend   | WARNING:root:Model qwen3 not available: model 'qwen2.5' not found (status code: 404)
+llm-test-backend   | WARNING:root:Model llama3.2 not available: model 'llama3.2' not found (status code: 404)
+llm-test-backend   | WARNING:root:Model gemma2 not available: model 'gemma2' not found (status code: 404)
+llm-test-backend   | WARNING:root:No models passed availability check, returning all configured models
+llm-test-backend   | INFO:     172.19.0.1:51394 - "GET /api/models HTTP/1.1" 200 OK                         
+0 Safari/537.36" "-"
+llm-test-backend   | INFO:     172.19.0.1:38142 - "OPTIONS /api/ask HTTP/1.1" 200 OK
+llm-test-backend   | ERROR:root:Error in LLMService.get_response: model 'deepseek-r1' not found (status code: 404)
+llm-test-backend   | ERROR:root:Error in /api/ask: model 'deepseek-r1' not found (status code: 404)
