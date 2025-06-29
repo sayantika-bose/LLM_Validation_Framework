@@ -784,19 +784,22 @@ function exportToPDF() {
     
     showNotification('Generating PDF report...', 'info');
     
-    // Create a visible div with the report template (important for html2pdf)
+    // Create a properly sized div for PDF generation
     const reportDiv = document.createElement('div');
     reportDiv.id = 'pdf-report';
     reportDiv.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 800px;
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        width: 210mm;
+        min-height: 297mm;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         background: white;
-        padding: 40px;
-        z-index: 9999;
-        overflow: hidden;
+        padding: 20mm;
+        box-sizing: border-box;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #333;
     `;
     
     const totalTests = testHistory.length;
@@ -813,96 +816,92 @@ function exportToPDF() {
         (testsWithValidation.reduce((sum, t) => sum + (t.validation.llm_validation?.score || 0), 0) / testsWithValidation.length).toFixed(1) : 'N/A';
     
     reportDiv.innerHTML = `
-        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #4facfe; padding-bottom: 15px;">
-            <h1 style="color: #1e293b; font-size: 24px; margin: 0; font-weight: bold;">OWASP LLM Security Test Report</h1>
-            <p style="color: #64748b; font-size: 14px; margin: 8px 0 0 0;">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #4facfe; padding-bottom: 10px;">
+            <h1 style="color: #1e293b; font-size: 20px; margin: 0; font-weight: bold;">OWASP LLM Security Test Report</h1>
+            <p style="color: #64748b; font-size: 11px; margin: 5px 0 0 0;">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
         </div>
         
-        <table style="width: 100%; margin-bottom: 25px; border-collapse: collapse;">
-            <tr>
-                <td style="background: #4facfe; color: white; padding: 15px; text-align: center; border-radius: 5px; margin: 2px; width: 24%;">
-                    <div style="font-size: 14px; font-weight: bold;">Total Tests</div>
-                    <div style="font-size: 24px; font-weight: bold; margin: 5px 0;">${totalTests}</div>
-                </td>
-                <td style="background: #10b981; color: white; padding: 15px; text-align: center; border-radius: 5px; margin: 2px; width: 24%;">
-                    <div style="font-size: 14px; font-weight: bold;">Passed</div>
-                    <div style="font-size: 24px; font-weight: bold; margin: 5px 0;">${passedTests}</div>
-                </td>
-                <td style="background: #ef4444; color: white; padding: 15px; text-align: center; border-radius: 5px; margin: 2px; width: 24%;">
-                    <div style="font-size: 14px; font-weight: bold;">Failed</div>
-                    <div style="font-size: 24px; font-weight: bold; margin: 5px 0;">${failedTests}</div>
-                </td>
-                <td style="background: #f59e0b; color: white; padding: 15px; text-align: center; border-radius: 5px; margin: 2px; width: 24%;">
-                    <div style="font-size: 14px; font-weight: bold;">Review</div>
-                    <div style="font-size: 24px; font-weight: bold; margin: 5px 0;">${reviewTests}</div>
-                </td>
-            </tr>
-        </table>
-        
-        <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
-            <h2 style="color: #1e293b; margin: 0 0 15px 0; font-size: 18px;">Validation Statistics</h2>
-            <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                    <td style="text-align: center; padding: 10px;">
-                        <div style="font-size: 12px; color: #64748b;">Avg Rule-based Score</div>
-                        <div style="font-size: 20px; font-weight: bold; color: #4facfe;">${avgRuleScore}/5</div>
-                    </td>
-                    <td style="text-align: center; padding: 10px;">
-                        <div style="font-size: 12px; color: #64748b;">Avg LLM Score</div>
-                        <div style="font-size: 20px; font-weight: bold; color: #4facfe;">${avgLlmScore}/5</div>
-                    </td>
-                    <td style="text-align: center; padding: 10px;">
-                        <div style="font-size: 12px; color: #64748b;">Tests with Validation</div>
-                        <div style="font-size: 20px; font-weight: bold; color: #4facfe;">${testsWithValidation.length}</div>
-                    </td>
-                </tr>
-            </table>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px; gap: 5px;">
+            <div style="background: #4facfe; color: white; padding: 10px; text-align: center; border-radius: 4px; flex: 1;">
+                <div style="font-size: 10px; font-weight: bold;">Total Tests</div>
+                <div style="font-size: 18px; font-weight: bold; margin: 3px 0;">${totalTests}</div>
+            </div>
+            <div style="background: #10b981; color: white; padding: 10px; text-align: center; border-radius: 4px; flex: 1;">
+                <div style="font-size: 10px; font-weight: bold;">Passed</div>
+                <div style="font-size: 18px; font-weight: bold; margin: 3px 0;">${passedTests}</div>
+            </div>
+            <div style="background: #ef4444; color: white; padding: 10px; text-align: center; border-radius: 4px; flex: 1;">
+                <div style="font-size: 10px; font-weight: bold;">Failed</div>
+                <div style="font-size: 18px; font-weight: bold; margin: 3px 0;">${failedTests}</div>
+            </div>
+            <div style="background: #f59e0b; color: white; padding: 10px; text-align: center; border-radius: 4px; flex: 1;">
+                <div style="font-size: 10px; font-weight: bold;">Review</div>
+                <div style="font-size: 18px; font-weight: bold; margin: 3px 0;">${reviewTests}</div>
+            </div>
         </div>
         
-        <h2 style="color: #1e293b; margin: 30px 0 20px 0;">📋 Detailed Test Results</h2>
+        <div style="background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; margin-bottom: 20px; border-radius: 4px;">
+            <h2 style="color: #1e293b; margin: 0 0 10px 0; font-size: 14px;">Validation Statistics</h2>
+            <div style="display: flex; justify-content: space-between; text-align: center;">
+                <div style="flex: 1;">
+                    <div style="font-size: 10px; color: #64748b;">Avg Rule-based Score</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #4facfe;">${avgRuleScore}/5</div>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 10px; color: #64748b;">Avg LLM Score</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #4facfe;">${avgLlmScore}/5</div>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 10px; color: #64748b;">Tests with Validation</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #4facfe;">${testsWithValidation.length}</div>
+                </div>
+            </div>
+        </div>
+        
+        <h2 style="color: #1e293b; margin: 20px 0 15px 0; font-size: 16px;">📋 Detailed Test Results</h2>
         
         ${testHistory.map((test, index) => `
-            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 20px; overflow: hidden;">
-                <div style="background: #f1f5f9; padding: 15px; border-bottom: 1px solid #e2e8f0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="margin: 0; color: #1e293b;">${index + 1}. ${test.test_case_title}</h3>
-                        <span style="padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 12px; color: white; background: ${
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 15px; page-break-inside: avoid;">
+                <div style="background: #f1f5f9; padding: 10px; border-bottom: 1px solid #e2e8f0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <h3 style="margin: 0; color: #1e293b; font-size: 12px;">${index + 1}. ${test.test_case_title}</h3>
+                        <span style="padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 9px; color: white; background: ${
                             test.status === 'PASS' ? '#10b981' : 
                             test.status === 'FAIL' ? '#ef4444' : 
                             test.status === 'REVIEW' ? '#f59e0b' : '#64748b'
                         };">${test.status || 'PENDING'}</span>
                     </div>
-                    <div style="font-size: 14px; color: #64748b; margin-top: 5px;">
-                        🤖 ${test.model_name} • ⏰ ${new Date(test.timestamp).toLocaleString()}
+                    <div style="font-size: 10px; color: #64748b;">
+                        🤖 ${test.model_name} • ⏰ ${new Date(test.timestamp).toLocaleDateString()}
                     </div>
                 </div>
                 
-                <div style="padding: 20px;">
-                    <div style="margin-bottom: 15px;">
-                        <strong style="color: #374151;">Prompt:</strong>
-                        <div style="background: #f8fafc; padding: 10px; border-radius: 6px; margin-top: 5px; font-family: monospace; font-size: 13px;">
-                            ${test.prompt}
+                <div style="padding: 12px;">
+                    <div style="margin-bottom: 10px;">
+                        <strong style="color: #374151; font-size: 11px;">Prompt:</strong>
+                        <div style="background: #f8fafc; padding: 8px; border-radius: 4px; margin-top: 3px; font-family: monospace; font-size: 10px; line-height: 1.3; max-height: 60px; overflow: hidden;">
+                            ${test.prompt.length > 200 ? test.prompt.substring(0, 200) + '...' : test.prompt}
                         </div>
                     </div>
                     
                     ${test.validation ? `
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px;">
-                            <div style="background: #f0f9ff; padding: 12px; border-radius: 6px;">
-                                <strong style="color: #1e40af;">🔧 Rule-based Analysis</strong>
-                                <div style="font-size: 13px; margin-top: 5px;">
-                                    Risk Score: <strong>${test.validation.rule_based?.risk_score || 'N/A'}/5</strong><br>
-                                    Keywords: ${test.validation.rule_based?.keyword_matches?.join(', ') || 'None'}
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <div style="background: #f0f9ff; padding: 8px; border-radius: 4px; flex: 1;">
+                                <strong style="color: #1e40af; font-size: 10px;">🔧 Rule-based</strong>
+                                <div style="font-size: 9px; margin-top: 3px; line-height: 1.2;">
+                                    Risk: <strong>${test.validation.rule_based?.risk_score || 'N/A'}/5</strong><br>
+                                    Keywords: ${(test.validation.rule_based?.keyword_matches?.slice(0, 2)?.join(', ') || 'None')}
                                 </div>
                             </div>
-                            <div style="background: #f0fdf4; padding: 12px; border-radius: 6px;">
-                                <strong style="color: #166534;">🤖 LLM Validation</strong>
-                                <div style="font-size: 13px; margin-top: 5px;">
+                            <div style="background: #f0fdf4; padding: 8px; border-radius: 4px; flex: 1;">
+                                <strong style="color: #166534; font-size: 10px;">🤖 LLM Validation</strong>
+                                <div style="font-size: 9px; margin-top: 3px; line-height: 1.2;">
                                     Score: <strong>${test.validation.llm_validation?.score || 'N/A'}/5</strong><br>
-                                    Confidence: ${(test.validation.confidence * 100).toFixed(1)}%
+                                    Confidence: ${(test.validation.confidence * 100).toFixed(0)}%
                                 </div>
                             </div>
                         </div>
-                    ` : '<div style="color: #64748b; font-style: italic;">No validation data available</div>'}
+                    ` : '<div style="color: #64748b; font-style: italic; font-size: 10px;">No validation data available</div>'}
                 </div>
             </div>
         `).join('')}
@@ -914,72 +913,50 @@ function exportToPDF() {
     
     document.body.appendChild(reportDiv);
     
-    // Add overlay to hide the report from user
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        z-index: 9998;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: white;
-        font-size: 18px;
-    `;
-    overlay.innerHTML = '<div>📄 Generating PDF Report...</div>';
-    document.body.appendChild(overlay);
-    
-    // Wait for DOM to render before generating PDF
+    // Wait for DOM to render and generate PDF
     setTimeout(() => {
         const opt = {
-            margin: [0.5, 0.5, 0.5, 0.5],
+            margin: [10, 10, 10, 10],
             filename: `owasp-llm-security-report-${new Date().toISOString().split('T')[0]}.pdf`,
             image: { 
                 type: 'jpeg', 
                 quality: 0.98 
             },
             html2canvas: { 
-                scale: 1.5,
+                scale: 2,
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: '#ffffff',
-                logging: true,
-                width: 800,
+                logging: false,
+                scrollX: 0,
+                scrollY: 0,
+                width: reportDiv.scrollWidth,
                 height: reportDiv.scrollHeight
             },
             jsPDF: { 
-                unit: 'in', 
+                unit: 'mm', 
                 format: 'a4', 
-                orientation: 'portrait',
-                compress: true
+                orientation: 'portrait'
+            },
+            pagebreak: {
+                mode: ['avoid-all', 'css', 'legacy'],
+                before: '.page-break-before',
+                after: '.page-break-after',
+                avoid: '.page-break-avoid'
             }
         };
         
         html2pdf().set(opt).from(reportDiv).save().then(() => {
             // Clean up
-            if (reportDiv.parentNode) {
-                reportDiv.parentNode.removeChild(reportDiv);
-            }
-            if (overlay.parentNode) {
-                overlay.parentNode.removeChild(overlay);
-            }
+            document.body.removeChild(reportDiv);
             showNotification('PDF report generated successfully!', 'success');
         }).catch((error) => {
             console.error('PDF generation error:', error);
             // Clean up on error
-            if (reportDiv.parentNode) {
-                reportDiv.parentNode.removeChild(reportDiv);
-            }
-            if (overlay.parentNode) {
-                overlay.parentNode.removeChild(overlay);
-            }
+            document.body.removeChild(reportDiv);
             showNotification('Failed to generate PDF. Please try again.', 'error');
         });
-    }, 500); // Give time for DOM to render
+    }, 1000); // Give more time for DOM to render
 }
 
 // Clear history
