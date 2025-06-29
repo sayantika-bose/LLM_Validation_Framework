@@ -784,16 +784,19 @@ function exportToPDF() {
     
     showNotification('Generating PDF report...', 'info');
     
-    // Create a hidden div with the report template
+    // Create a visible div with the report template (important for html2pdf)
     const reportDiv = document.createElement('div');
+    reportDiv.id = 'pdf-report';
     reportDiv.style.cssText = `
-        position: absolute;
-        left: -9999px;
+        position: fixed;
         top: 0;
+        left: 0;
         width: 800px;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         background: white;
         padding: 40px;
+        z-index: 9999;
+        overflow: hidden;
     `;
     
     const totalTests = testHistory.length;
@@ -810,46 +813,50 @@ function exportToPDF() {
         (testsWithValidation.reduce((sum, t) => sum + (t.validation.llm_validation?.score || 0), 0) / testsWithValidation.length).toFixed(1) : 'N/A';
     
     reportDiv.innerHTML = `
-        <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #4facfe; padding-bottom: 20px;">
-            <h1 style="color: #1e293b; font-size: 28px; margin: 0;">🛡️ OWASP LLM Security Test Report</h1>
-            <p style="color: #64748b; font-size: 16px; margin: 10px 0 0 0;">Generated on ${new Date().toLocaleDateString()}</p>
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #4facfe; padding-bottom: 15px;">
+            <h1 style="color: #1e293b; font-size: 24px; margin: 0; font-weight: bold;">OWASP LLM Security Test Report</h1>
+            <p style="color: #64748b; font-size: 14px; margin: 8px 0 0 0;">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
         </div>
         
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
-            <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">
-                <h3 style="margin: 0; font-size: 18px;">📊 Total Tests</h3>
-                <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">${totalTests}</div>
-            </div>
-            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">
-                <h3 style="margin: 0; font-size: 18px;">✅ Passed</h3>
-                <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">${passedTests}</div>
-            </div>
-            <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">
-                <h3 style="margin: 0; font-size: 18px;">❌ Failed</h3>
-                <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">${failedTests}</div>
-            </div>
-            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">
-                <h3 style="margin: 0; font-size: 18px;">🔍 Review</h3>
-                <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">${reviewTests}</div>
-            </div>
-        </div>
+        <table style="width: 100%; margin-bottom: 25px; border-collapse: collapse;">
+            <tr>
+                <td style="background: #4facfe; color: white; padding: 15px; text-align: center; border-radius: 5px; margin: 2px; width: 24%;">
+                    <div style="font-size: 14px; font-weight: bold;">Total Tests</div>
+                    <div style="font-size: 24px; font-weight: bold; margin: 5px 0;">${totalTests}</div>
+                </td>
+                <td style="background: #10b981; color: white; padding: 15px; text-align: center; border-radius: 5px; margin: 2px; width: 24%;">
+                    <div style="font-size: 14px; font-weight: bold;">Passed</div>
+                    <div style="font-size: 24px; font-weight: bold; margin: 5px 0;">${passedTests}</div>
+                </td>
+                <td style="background: #ef4444; color: white; padding: 15px; text-align: center; border-radius: 5px; margin: 2px; width: 24%;">
+                    <div style="font-size: 14px; font-weight: bold;">Failed</div>
+                    <div style="font-size: 24px; font-weight: bold; margin: 5px 0;">${failedTests}</div>
+                </td>
+                <td style="background: #f59e0b; color: white; padding: 15px; text-align: center; border-radius: 5px; margin: 2px; width: 24%;">
+                    <div style="font-size: 14px; font-weight: bold;">Review</div>
+                    <div style="font-size: 24px; font-weight: bold; margin: 5px 0;">${reviewTests}</div>
+                </td>
+            </tr>
+        </table>
         
-        <div style="background: #f8fafc; padding: 25px; border-radius: 10px; margin-bottom: 30px;">
-            <h2 style="color: #1e293b; margin: 0 0 20px 0;">📈 Validation Statistics</h2>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                <div style="text-align: center;">
-                    <div style="font-size: 14px; color: #64748b;">Avg Rule-based Score</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #4facfe;">${avgRuleScore}/5</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 14px; color: #64748b;">Avg LLM Score</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #4facfe;">${avgLlmScore}/5</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 14px; color: #64748b;">Tests with Validation</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #4facfe;">${testsWithValidation.length}</div>
-                </div>
-            </div>
+        <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
+            <h2 style="color: #1e293b; margin: 0 0 15px 0; font-size: 18px;">Validation Statistics</h2>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="text-align: center; padding: 10px;">
+                        <div style="font-size: 12px; color: #64748b;">Avg Rule-based Score</div>
+                        <div style="font-size: 20px; font-weight: bold; color: #4facfe;">${avgRuleScore}/5</div>
+                    </td>
+                    <td style="text-align: center; padding: 10px;">
+                        <div style="font-size: 12px; color: #64748b;">Avg LLM Score</div>
+                        <div style="font-size: 20px; font-weight: bold; color: #4facfe;">${avgLlmScore}/5</div>
+                    </td>
+                    <td style="text-align: center; padding: 10px;">
+                        <div style="font-size: 12px; color: #64748b;">Tests with Validation</div>
+                        <div style="font-size: 20px; font-weight: bold; color: #4facfe;">${testsWithValidation.length}</div>
+                    </td>
+                </tr>
+            </table>
         </div>
         
         <h2 style="color: #1e293b; margin: 30px 0 20px 0;">📋 Detailed Test Results</h2>
@@ -907,23 +914,72 @@ function exportToPDF() {
     
     document.body.appendChild(reportDiv);
     
-    // Use html2pdf to generate PDF
-    const opt = {
-        margin: 1,
-        filename: `owasp-llm-security-report-${new Date().toISOString().split('T')[0]}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
+    // Add overlay to hide the report from user
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9998;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 18px;
+    `;
+    overlay.innerHTML = '<div>📄 Generating PDF Report...</div>';
+    document.body.appendChild(overlay);
     
-    html2pdf().set(opt).from(reportDiv).save().then(() => {
-        document.body.removeChild(reportDiv);
-        showNotification('PDF report generated successfully!', 'success');
-    }).catch((error) => {
-        console.error('PDF generation error:', error);
-        document.body.removeChild(reportDiv);
-        showNotification('Failed to generate PDF. Please try again.', 'error');
-    });
+    // Wait for DOM to render before generating PDF
+    setTimeout(() => {
+        const opt = {
+            margin: [0.5, 0.5, 0.5, 0.5],
+            filename: `owasp-llm-security-report-${new Date().toISOString().split('T')[0]}.pdf`,
+            image: { 
+                type: 'jpeg', 
+                quality: 0.98 
+            },
+            html2canvas: { 
+                scale: 1.5,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: true,
+                width: 800,
+                height: reportDiv.scrollHeight
+            },
+            jsPDF: { 
+                unit: 'in', 
+                format: 'a4', 
+                orientation: 'portrait',
+                compress: true
+            }
+        };
+        
+        html2pdf().set(opt).from(reportDiv).save().then(() => {
+            // Clean up
+            if (reportDiv.parentNode) {
+                reportDiv.parentNode.removeChild(reportDiv);
+            }
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+            showNotification('PDF report generated successfully!', 'success');
+        }).catch((error) => {
+            console.error('PDF generation error:', error);
+            // Clean up on error
+            if (reportDiv.parentNode) {
+                reportDiv.parentNode.removeChild(reportDiv);
+            }
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+            showNotification('Failed to generate PDF. Please try again.', 'error');
+        });
+    }, 500); // Give time for DOM to render
 }
 
 // Clear history
