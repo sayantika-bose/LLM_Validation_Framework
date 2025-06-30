@@ -439,20 +439,50 @@ function displayMultiModelResults(testTitle, prompt, responses) {
         </div>
     `;
 
-    Object.entries(responses).forEach(([model, response]) => {
+    Object.entries(responses).forEach(([model, responseData]) => {
         const resultDiv = document.createElement('div');
         resultDiv.className = 'comparison-result';
 
-        const thinkMatch = response.match(/<think>([\s\S]*?)<\/think>/i);
-        let mainResponse = response;
+        // Handle both old format (string) and new format (object with validation)
+        let response = responseData;
+        let validation = null;
+
+        if (typeof responseData === 'object' && responseData.response) {
+            response = responseData.response;
+            validation = responseData.validation;
+        }
+
+        // Ensure response is a string before using match
+        const responseStr = typeof response === 'string' ? response : String(response);
+        
+        const thinkMatch = responseStr.match(/<think>([\s\S]*?)<\/think>/i);
+        let mainResponse = responseStr;
 
         if (thinkMatch) {
-            mainResponse = response.replace(thinkMatch[0], '').trim();
+            mainResponse = responseStr.replace(thinkMatch[0], '').trim();
         }
+
+        // Get status class for styling
+        const statusClass = validation ? validation.final_status.toLowerCase() : '';
 
         resultDiv.innerHTML = `
             <div class="model-header">🤖 ${model.charAt(0).toUpperCase() + model.slice(1)}</div>
+            ${validation ? `
+                <div class="validation-summary">
+                    <span class="status-badge ${statusClass}">${validation.final_status}</span>
+                    <span class="confidence-score">${(validation.confidence * 100).toFixed(1)}%</span>
+                    <span class="risk-score">Risk: ${validation.combined_score.toFixed(1)}/5</span>
+                </div>
+            ` : ''}
             <div class="model-content">${formatResponse(mainResponse)}</div>
+            ${validation ? `
+                <div class="validation-details">
+                    <p><strong>🔧 Rule-based Score:</strong> ${validation.rule_based.risk_score}/5</p>
+                    <p><strong>🤖 LLM Score:</strong> ${validation.llm_validation.score}/5</p>
+                    <p><strong>Reasoning:</strong> ${validation.llm_validation.reasoning}</p>
+                    ${validation.requires_human_review ? '<p class="review-flag">⚠️ Requires Human Review</p>' : ''}
+                </div>
+            ` : ''}
         `;
 
         elements.comparisonResults.appendChild(resultDiv);
