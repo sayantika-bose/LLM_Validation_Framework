@@ -588,6 +588,106 @@ header p {
     border: 1px solid #fbbf24;
 }
 
+/* Review Queue Styles */
+.review-queue-section {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 15px;
+    padding: 25px;
+    margin-top: 30px;
+}
+
+.review-queue-section h4 {
+    color: #1e293b;
+    margin-bottom: 15px;
+}
+
+.review-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.review-queue-list {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.review-item {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.review-header {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.review-content {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.review-content p {
+    margin: 10px 0;
+    line-height: 1.5;
+}
+
+.review-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn.small {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+}
+
+.btn.pass {
+    background: #10b981;
+    color: white;
+}
+
+.btn.fail {
+    background: #ef4444;
+    color: white;
+}
+
+.review-flag, .no-review {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.review-flag {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.no-review {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.modal-content.large {
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
 .result-text.review {
     color: #f59e0b;
     font-weight: bold;

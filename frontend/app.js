@@ -1,4 +1,3 @@
-
 // Test cases with multiple prompts each
 const testCases = [
     {
@@ -62,7 +61,7 @@ const elements = {
     passFail: document.getElementById('passFail'),
     failCheck: document.getElementById('failCheck'),
     resultText: document.getElementById('resultText'),
-    
+
     // Multi-model
     multiTestcase: document.getElementById('multiTestcase'),
     modelCheckboxes: document.getElementById('modelCheckboxes'),
@@ -70,7 +69,7 @@ const elements = {
     multiLoading: document.getElementById('multiLoading'),
     multiResponseSection: document.getElementById('multiResponseSection'),
     comparisonResults: document.getElementById('comparisonResults'),
-    
+
     // Batch testing
     batchTestCases: document.getElementById('batchTestCases'),
     batchModel: document.getElementById('batchModel'),
@@ -80,7 +79,7 @@ const elements = {
     batchResults: document.getElementById('batchResults'),
     batchSummary: document.getElementById('batchSummary'),
     batchDetails: document.getElementById('batchDetails'),
-    
+
     // Reports
     historyBody: document.getElementById('historyBody'),
     exportPdfBtn: document.getElementById('exportPdfBtn'),
@@ -108,7 +107,7 @@ async function loadModels() {
         const response = await fetch('http://localhost:8000/api/models');
         const data = await response.json();
         availableModels = data.models;
-        
+
         // If we only get deepseek-r1, try the all models endpoint
         if (availableModels.length === 1 && availableModels[0] === 'deepseek-r1') {
             try {
@@ -138,7 +137,7 @@ function populateSelectors() {
             select.appendChild(opt);
         });
     });
-    
+
     // Model selectors
     [elements.modelSelect, elements.batchModel].forEach(select => {
         select.innerHTML = '';
@@ -149,7 +148,7 @@ function populateSelectors() {
             select.appendChild(opt);
         });
     });
-    
+
     // Model checkboxes for multi-model testing
     elements.modelCheckboxes.innerHTML = '';
     availableModels.forEach(model => {
@@ -160,7 +159,7 @@ function populateSelectors() {
         `;
         elements.modelCheckboxes.appendChild(label);
     });
-    
+
     // Batch test case checkboxes
     elements.batchTestCases.innerHTML = '';
     testCases.forEach(tc => {
@@ -182,26 +181,26 @@ function setupEventListeners() {
             showTab(tabName);
         });
     });
-    
+
     // Single test with loading states
     elements.runBtn.addEventListener('click', runSingleTest);
     elements.continueBtn.addEventListener('click', continueTesting);
     elements.passFail.addEventListener('change', () => handleStatusChange('PASS'));
     elements.failCheck.addEventListener('change', () => handleStatusChange('FAIL'));
-    
+
     // Multi-model test with validation
     elements.runMultiBtn.addEventListener('click', runMultiModelTest);
-    
+
     // Batch test with progress feedback
     elements.runBatchBtn.addEventListener('click', runBatchTest);
-    
+
     // Reports with confirmation
     elements.exportPdfBtn.addEventListener('click', exportToPDF);
     elements.clearHistoryBtn.addEventListener('click', clearHistory);
-    
+
     // Add real-time form validation
     setupFormValidation();
-    
+
     // Add keyboard shortcuts
     setupKeyboardShortcuts();
 }
@@ -215,7 +214,7 @@ function showTab(tabName) {
     document.querySelectorAll('.tab-button').forEach(button => {
         button.classList.remove('active');
     });
-    
+
     // Show selected tab
     document.getElementById(tabName).classList.add('active');
     document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
@@ -232,29 +231,29 @@ async function runSingleTest() {
     const selectedId = parseInt(elements.testcaseSelect.value);
     const selectedModel = elements.modelSelect.value;
     const selected = testCases.find(tc => tc.id === selectedId);
-    
+
     if (!selected) {
         showNotification('Please select a test case', 'error');
         return;
     }
-    
+
     if (!selectedModel) {
         showNotification('Please select a model', 'error');
         return;
     }
-    
+
     currentCase = selected;
     currentModel = selectedModel;
     currentPrompt = getRandomPrompt(selected);
-    
+
     // Add loading state to button
     elements.runBtn.classList.add('loading');
     elements.runBtn.disabled = true;
-    
+
     showLoading(elements.loading);
     hideElement(elements.responseSection);
     resetResultChecks();
-    
+
     try {
         const response = await fetch('http://localhost:8000/api/ask-with-validation', {
             method: 'POST',
@@ -264,11 +263,11 @@ async function runSingleTest() {
                 model_name: selectedModel
             })
         });
-        
+
         hideElement(elements.loading);
         elements.runBtn.classList.remove('loading');
         elements.runBtn.disabled = false;
-        
+
         if (response.ok) {
             const data = await response.json();
             displaySingleResponseWithValidation(data);
@@ -290,29 +289,29 @@ async function runSingleTest() {
 // Display single test response with validation results
 function displaySingleResponseWithValidation(data) {
     elements.promptText.textContent = currentPrompt;
-    
+
     // Handle think tags in response
     const response = data.response;
     const validation = data.validation;
-    
+
     // Store validation data globally for history
     window.currentValidationData = validation;
-    
+
     const thinkMatch = response.match(/<think>([\s\S]*?)<\/think>/i);
     let mainResponse = response;
     let thinkContent = '';
-    
+
     if (thinkMatch) {
         thinkContent = thinkMatch[1].trim();
         mainResponse = response.replace(thinkMatch[0], '').trim();
     }
-    
+
     // Get status color class
     const statusClass = validation.final_status.toLowerCase();
-    
+
     elements.modelResponse.innerHTML = `
         <div class="main-response">${formatResponse(mainResponse)}</div>
-        
+
         <div class="validation-results">
             <h4>🔍 Security Validation Results</h4>
             <div class="validation-summary">
@@ -326,7 +325,7 @@ function displaySingleResponseWithValidation(data) {
                     Risk Score: ${validation.combined_score.toFixed(1)}/5
                 </div>
             </div>
-            
+
             <div class="validation-details">
                 <div class="rule-based-results">
                     <h5>🔧 Rule-based Analysis:</h5>
@@ -334,7 +333,7 @@ function displaySingleResponseWithValidation(data) {
                     <p><strong>Security Indicators:</strong> ${validation.rule_based.indicator_matches.length > 0 ? validation.rule_based.indicator_matches.join(', ') : 'None detected'}</p>
                     <p><strong>Risk Level:</strong> ${validation.rule_based.risk_score}/5</p>
                 </div>
-                
+
                 <div class="llm-validation-results">
                     <h5>🤖 LLM Security Analysis:</h5>
                     <p><strong>Score:</strong> ${validation.llm_validation.score}/5</p>
@@ -343,29 +342,29 @@ function displaySingleResponseWithValidation(data) {
                     <p><strong>Recommendations:</strong> ${validation.llm_validation.recommendations}</p>
                 </div>
             </div>
-            
+
             ${validation.requires_human_review ? 
                 '<div class="human-review-notice">⚠️ This response requires human review</div>' : 
                 ''
             }
         </div>
     `;
-    
+
     if (thinkContent) {
         const thinkToggle = document.createElement('button');
         thinkToggle.className = 'think-toggle';
         thinkToggle.textContent = '🧠 Show "think" reasoning';
         thinkToggle.onclick = toggleThinkContent;
-        
+
         const thinkDiv = document.createElement('div');
         thinkDiv.className = 'think-content';
         thinkDiv.style.display = 'none';
         thinkDiv.innerHTML = `<strong>Model "think" reasoning:</strong><br>${formatResponse(thinkContent)}`;
-        
+
         elements.modelResponse.appendChild(thinkToggle);
         elements.modelResponse.appendChild(thinkDiv);
     }
-    
+
     // Auto-set pass/fail based on validation
     if (validation.final_status === 'PASS') {
         elements.passFail.checked = true;
@@ -383,7 +382,7 @@ function displaySingleResponseWithValidation(data) {
         elements.resultText.textContent = 'REVIEW - Manual Review Required';
         elements.resultText.className = 'result-text review';
     }
-    
+
     showElement(elements.responseSection);
     showElement(elements.continueBtn);
 }
@@ -393,20 +392,20 @@ async function runMultiModelTest() {
     const selectedId = parseInt(elements.multiTestcase.value);
     const selectedModels = Array.from(elements.modelCheckboxes.querySelectorAll('input:checked'))
         .map(input => input.value);
-    
+
     if (selectedModels.length === 0) {
         alert('Please select at least one model for comparison');
         return;
     }
-    
+
     const selected = testCases.find(tc => tc.id === selectedId);
     if (!selected) return;
-    
+
     const prompt = getRandomPrompt(selected);
-    
+
     showLoading(elements.multiLoading);
     hideElement(elements.multiResponseSection);
-    
+
     try {
         const response = await fetch('http://localhost:8000/api/ask-multiple', {
             method: 'POST',
@@ -416,9 +415,9 @@ async function runMultiModelTest() {
                 model_names: selectedModels
             })
         });
-        
+
         hideElement(elements.multiLoading);
-        
+
         if (response.ok) {
             const data = await response.json();
             displayMultiModelResults(selected.title, prompt, data.responses);
@@ -439,26 +438,26 @@ function displayMultiModelResults(testTitle, prompt, responses) {
             <p><strong>Prompt:</strong> ${prompt}</p>
         </div>
     `;
-    
+
     Object.entries(responses).forEach(([model, response]) => {
         const resultDiv = document.createElement('div');
         resultDiv.className = 'comparison-result';
-        
+
         const thinkMatch = response.match(/<think>([\s\S]*?)<\/think>/i);
         let mainResponse = response;
-        
+
         if (thinkMatch) {
             mainResponse = response.replace(thinkMatch[0], '').trim();
         }
-        
+
         resultDiv.innerHTML = `
             <div class="model-header">🤖 ${model.charAt(0).toUpperCase() + model.slice(1)}</div>
             <div class="model-content">${formatResponse(mainResponse)}</div>
         `;
-        
+
         elements.comparisonResults.appendChild(resultDiv);
     });
-    
+
     showElement(elements.multiResponseSection);
 }
 
@@ -468,12 +467,12 @@ async function runBatchTest() {
         .map(input => parseInt(input.value));
     const selectedModel = elements.batchModel.value;
     const promptsPerCase = parseInt(elements.promptsPerCase.value);
-    
+
     if (selectedCaseIds.length === 0) {
         alert('Please select at least one test case');
         return;
     }
-    
+
     // Enhanced loading with progress
     elements.batchLoading.innerHTML = `
         <div class="spinner"></div>
@@ -485,11 +484,11 @@ async function runBatchTest() {
     `;
     showLoading(elements.batchLoading);
     hideElement(elements.batchResults);
-    
+
     // Disable button during testing
     elements.runBatchBtn.disabled = true;
     elements.runBatchBtn.classList.add('loading');
-    
+
     try {
         const response = await fetch('http://localhost:8000/api/batch-test', {
             method: 'POST',
@@ -500,16 +499,16 @@ async function runBatchTest() {
                 prompts_per_case: promptsPerCase
             })
         });
-        
+
         hideElement(elements.batchLoading);
         elements.runBatchBtn.disabled = false;
         elements.runBatchBtn.classList.remove('loading');
-        
+
         if (response.ok) {
             const data = await response.json();
-            displayBatchResults(data.results);
+            displayBatchResults(data);
             showNotification(`Batch test completed! ${data.results.length} tests executed.`, 'success');
-            
+
             // Add to history
             data.results.forEach(result => {
                 testHistory.push({
@@ -528,106 +527,121 @@ async function runBatchTest() {
     }
 }
 
-// Display batch test results
-function displayBatchResults(results) {
-    // Create summary
-    const summary = createBatchSummary(results);
-    elements.batchSummary.innerHTML = '';
-    
-    summary.forEach(card => {
-        const cardDiv = document.createElement('div');
-        cardDiv.className = 'summary-card';
-        cardDiv.innerHTML = `
-            <h4>${card.title}</h4>
-            <div class="number">${card.value}</div>
-            <p>${card.description}</p>
-        `;
-        elements.batchSummary.appendChild(cardDiv);
-    });
-    
-    // Create detailed results table
+function displayBatchResults(data) {
+    const stats = data.batch_statistics;
+
     elements.batchDetails.innerHTML = `
-        <h4>📊 Detailed Results</h4>
+        <div class="batch-summary">
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <h4>Total Tests</h4>
+                    <div class="number">${stats.total_tests}</div>
+                    <p>Validation included</p>
+                </div>
+                <div class="summary-card">
+                    <h4>✅ Passed</h4>
+                    <div class="number">${stats.pass_count}</div>
+                    <p>${stats.pass_rate}% pass rate</p>
+                </div>
+                <div class="summary-card">
+                    <h4>❌ Failed</h4>
+                    <div class="number">${stats.fail_count}</div>
+                    <p>Security issues</p>
+                </div>
+                <div class="summary-card">
+                    <h4>⚠️ Review</h4>
+                    <div class="number">${stats.review_count}</div>
+                    <p>${stats.review_rate}% need review</p>
+                </div>
+                <div class="summary-card">
+                    <h4>🤖 Auto-Approved</h4>
+                    <div class="number">${stats.auto_approved_count}</div>
+                    <p>High confidence</p>
+                </div>
+                <div class="summary-card">
+                    <h4>👁️ Review Queue</h4>
+                    <div class="number">${stats.review_queue_count}</div>
+                    <p>Needs human review</p>
+                </div>
+                <div class="summary-card">
+                    <h4>Avg Confidence</h4>
+                    <div class="number">${(stats.average_confidence * 100).toFixed(1)}%</div>
+                    <p>Validation confidence</p>
+                </div>
+            </div>
+        </div>
+
         <table class="results-table">
             <thead>
                 <tr>
-                    <th>🎯 Test Case</th>
-                    <th>📝 Prompt</th>
-                    <th>🤖 Response</th>
-                    <th>⚡ Action</th>
+                    <th>Test Case</th>
+                    <th>Model</th>
+                    <th>Prompt</th>
+                    <th>Status</th>
+                    <th>Confidence</th>
+                    <th>Score</th>
+                    <th>Review</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                ${results.map((result, index) => `
+                ${data.results.map((result, index) => `
                     <tr>
-                        <td>${result.test_case_title}</td>
-                        <td>${truncateText(result.prompt, 100)}</td>
-                        <td>${truncateText(result.response, 150)}</td>
+                        <td><span class="test-case-badge">${result.test_case_title}</span></td>
+                        <td><span class="model-badge">${result.model_name}</span></td>
+                        <td class="prompt-cell">${result.prompt.substring(0, 50)}...</td>
+                        <td><span class="status-badge ${result.status.toLowerCase()}">${result.status}</span></td>
+                        <td><span class="confidence-score">${(result.confidence * 100).toFixed(1)}%</span></td>
+                        <td><span class="combined-score">${result.validation.combined_score.toFixed(1)}/5</span></td>
+                        <td>${result.requires_review ? '<span class="review-flag">🔍 Yes</span>' : '<span class="no-review">✅ No</span>'}</td>
                         <td>
-                            <button onclick="markBatchResult(${index}, 'PASS')" class="btn btn-small btn-success">✅ Pass</button>
-                            <button onclick="markBatchResult(${index}, 'FAIL')" class="btn btn-small btn-danger">❌ Fail</button>
+                            <button class="btn view-detail" onclick="showDetailModal(${index})">
+                                👁️ View Details
+                            </button>
                         </td>
                     </tr>
                 `).join('')}
             </tbody>
         </table>
-    `;
-    
-    // Store results for marking
-    window.currentBatchResults = results;
-    showElement(elements.batchResults);
-}
 
-// Create batch summary
-function createBatchSummary(results) {
-    const testCaseCount = new Set(results.map(r => r.test_case_id)).size;
-    const totalTests = results.length;
-    const avgResponseLength = Math.round(
-        results.reduce((sum, r) => sum + r.response.length, 0) / totalTests
-    );
-    
-    return [
-        {
-            title: '🎯 Test Cases',
-            value: testCaseCount,
-            description: 'Categories tested'
-        },
-        {
-            title: '📊 Total Tests',
-            value: totalTests,
-            description: 'Individual prompts'
-        },
-        {
-            title: '📏 Avg Response',
-            value: avgResponseLength,
-            description: 'Characters'
-        },
-        {
-            title: '🤖 Model',
-            value: results[0]?.model_name || 'N/A',
-            description: 'Tested model'
-        }
-    ];
+        ${stats.review_queue_count > 0 ? `
+            <div class="review-queue-section">
+                <h4>🔍 Items Requiring Human Review (${stats.review_queue_count})</h4>
+                <p>These results have low confidence scores or borderline classifications that require manual validation.</p>
+                <div class="review-actions">
+                    <button class="btn secondary" onclick="exportReviewQueue()">📋 Export Review Queue</button>
+                    <button class="btn primary" onclick="showReviewQueue()">👁️ View Review Queue</button>
+                </div>
+            </div>
+        ` : ''}
+    `;
+
+    // Store results globally for detail modal
+    window.batchResults = data.results;
+    window.reviewQueue = data.review_queue;
+    window.autoApproved = data.auto_approved;
+
+    showElement(elements.batchResults);
 }
 
 // Mark batch result
 function markBatchResult(index, status) {
     if (window.currentBatchResults && window.currentBatchResults[index]) {
         const result = window.currentBatchResults[index];
-        
+
         // Update in history
         const historyIndex = testHistory.findIndex(h => 
             h.prompt === result.prompt && 
             h.model_name === result.model_name &&
             h.timestamp === result.timestamp
         );
-        
+
         if (historyIndex !== -1) {
             testHistory[historyIndex].status = status;
             saveHistory();
             updateHistoryTable();
         }
-        
+
         // Update UI
         const row = elements.batchDetails.querySelector(`tbody tr:nth-child(${index + 1})`);
         if (row) {
@@ -640,17 +654,17 @@ function markBatchResult(index, status) {
 // History and reporting functions
 function updateHistoryTable() {
     elements.historyBody.innerHTML = '';
-    
+
     [...testHistory].reverse().forEach((item, index) => {
         const tr = document.createElement('tr');
         const timestamp = new Date(item.timestamp).toLocaleString();
-        
+
         // Get validation details if available
         const validation = item.validation || {};
         const ruleScore = validation.rule_based?.risk_score || 'N/A';
         const llmScore = validation.llm_validation?.score || 'N/A';
         const humanApproval = item.status || 'PENDING';
-        
+
         tr.innerHTML = `
             <td>${timestamp}</td>
             <td>${item.test_case_title}</td>
@@ -675,7 +689,7 @@ function updateHistoryTable() {
 function viewHistoryDetails(index) {
     const item = [...testHistory].reverse()[index];
     if (!item) return;
-    
+
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
@@ -684,7 +698,7 @@ function viewHistoryDetails(index) {
                 <h3 class="modal-title">📊 Test Details</h3>
                 <button class="close-modal" onclick="closeModal()">&times;</button>
             </div>
-            
+
             <div class="detail-section">
                 <h4>🎯 Test Information</h4>
                 <div class="detail-grid">
@@ -703,21 +717,21 @@ function viewHistoryDetails(index) {
                     </div>
                 </div>
             </div>
-            
+
             <div class="detail-section">
                 <h4>📝 Prompt</h4>
                 <div style="background: white; padding: 15px; border-radius: 8px; font-family: monospace;">
                     ${item.prompt}
                 </div>
             </div>
-            
+
             <div class="detail-section">
                 <h4>🤖 Model Response</h4>
                 <div style="background: white; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto;">
                     ${item.response || 'No response available'}
                 </div>
             </div>
-            
+
             ${item.validation ? `
                 <div class="detail-section">
                     <h4>🔍 Validation Results</h4>
@@ -736,7 +750,7 @@ function viewHistoryDetails(index) {
                             <strong>Human Review Required:</strong> ${item.validation.requires_human_review ? 'Yes' : 'No'}
                         </div>
                     </div>
-                    
+
                     <div style="margin-top: 15px;">
                         <div class="detail-grid">
                             <div class="detail-item">
@@ -755,10 +769,10 @@ function viewHistoryDetails(index) {
             ` : '<div class="detail-section"><h4>⚠️ No validation data available</h4></div>'}
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.style.display = 'block';
-    
+
     // Close modal when clicking outside
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
@@ -855,6 +869,121 @@ function clearHistory() {
     }
 }
 
+function saveHistory(prompt, response, testCase, model) {
+    // Implementation for saving test history
+    console.log('Saving to history:', { prompt, response, testCase, model });
+}
+
+// Review queue management functions
+function showReviewQueue() {
+    if (!window.reviewQueue || window.reviewQueue.length === 0) {
+        alert('No items in review queue');
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content large">
+            <span class="close">&times;</span>
+            <h3>🔍 Review Queue (${window.reviewQueue.length} items)</h3>
+            <div class="review-queue-list">
+                ${window.reviewQueue.map((item, index) => `
+                    <div class="review-item">
+                        <div class="review-header">
+                            <span class="test-casebadge">${item.test_case_title}</span>
+                            <span class="status-badge ${item.status.toLowerCase()}">${item.status}</span>
+                            <span class="confidence-score">${(item.confidence * 100).toFixed(1)}% confidence</span>
+                        </div>
+                        <div class="review-content">
+                            <p><strong>Prompt:</strong> ${item.prompt}</p>
+                            <p><strong>Response:</strong> ${item.response.substring(0, 200)}...</p>
+                            <p><strong>Validation Reasoning:</strong> ${item.validation.llm_validation.reasoning}</p>
+                        </div>
+                        <div class="review-actions">
+                            <button class="btn small pass" onclick="approveReviewItem(${index}, 'PASS')">✅ Approve as PASS</button>
+                            <button class="btn small fail" onclick="approveReviewItem(${index}, 'FAIL')">❌ Mark as FAIL</button>
+                            <button class="btn small secondary" onclick="flagForFollowup(${index})">🏃 Flag for Followup</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+
+    modal.querySelector('.close').onclick = () => {
+        document.body.removeChild(modal);
+    };
+}
+
+function exportReviewQueue() {
+    if (!window.reviewQueue || window.reviewQueue.length === 0) {
+        alert('No items in review queue to export');
+        return;
+    }
+
+    const csvContent = generateReviewQueueCSV(window.reviewQueue);
+    downloadCSV(csvContent, 'review-queue.csv');
+    showNotification('Review queue exported successfully!', 'success');
+}
+
+function generateReviewQueueCSV(reviewItems) {
+    const headers = ['Test Case', 'Model', 'Prompt', 'Response', 'Status', 'Confidence', 'Combined Score', 'Reasoning', 'Security Concerns'];
+    const rows = reviewItems.map(item => [
+        item.test_case_title,
+        item.model_name,
+        `"${item.prompt.replace(/"/g, '""')}"`,
+        `"${item.response.replace(/"/g, '""')}"`,
+        item.status,
+        (item.confidence * 100).toFixed(1) + '%',
+        item.validation.combined_score.toFixed(1),
+        `"${item.validation.llm_validation.reasoning.replace(/"/g, '""')}"`,
+        `"${item.validation.llm_validation.security_concerns?.join('; ') || 'None'}"`
+    ]);
+
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
+}
+
+function downloadCSV(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+function approveReviewItem(index, newStatus) {
+    if (window.reviewQueue && window.reviewQueue[index]) {
+        window.reviewQueue[index].status = newStatus;
+        window.reviewQueue[index].human_reviewed = true;
+        window.reviewQueue[index].review_timestamp = new Date().toISOString();
+        showNotification(`Item ${newStatus === 'PASS' ? 'approved' : 'marked as failed'}`, 'success');
+
+        // Remove from review queue and add to auto-approved
+        const item = window.reviewQueue.splice(index, 1)[0];
+        window.autoApproved.push(item);
+
+        // Refresh the review queue display
+        showReviewQueue();
+    }
+}
+
+function flagForFollowup(index) {
+    if (window.reviewQueue && window.reviewQueue[index]) {
+        window.reviewQueue[index].flagged_for_followup = true;
+        window.reviewQueue[index].flag_timestamp = new Date().toISOString();
+        showNotification('Item flagged for followup', 'info');
+    }
+}
 // Utility functions
 function showElement(element) {
     element.style.display = 'block';
@@ -893,17 +1022,17 @@ function handleStatusChange(status) {
         elements.resultText.textContent = 'Test marked as FAIL.';
         elements.resultText.className = 'status-fail';
     }
-    
+
     markStatus(status);
 }
 
 function markStatus(status) {
     if (!currentCase || !currentPrompt || !currentModel) return;
-    
+
     // Get validation data if available
     const responseElement = elements.modelResponse;
     const validationData = window.currentValidationData || null;
-    
+
     testHistory.push({
         test_case_id: currentCase.id,
         test_case_title: currentCase.title,
@@ -914,7 +1043,7 @@ function markStatus(status) {
         status: status,
         timestamp: new Date().toISOString()
     });
-    
+
     saveHistory();
     updateHistoryTable();
 }
@@ -928,7 +1057,7 @@ function continueTesting() {
 function toggleThinkContent() {
     const thinkDiv = document.querySelector('.think-content');
     const button = document.querySelector('.think-toggle');
-    
+
     if (thinkDiv.style.display === 'none') {
         thinkDiv.style.display = 'block';
         button.textContent = '🧠 Hide "think" reasoning';
@@ -962,7 +1091,7 @@ function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
-    
+
     notification.style.cssText = `
         position: fixed;
         top: 20px;
@@ -976,7 +1105,7 @@ function showNotification(message, type = 'info') {
         max-width: 300px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     `;
-    
+
     switch(type) {
         case 'success':
             notification.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
@@ -990,9 +1119,9 @@ function showNotification(message, type = 'info') {
         default:
             notification.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
     }
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.style.animation = 'slideOutRight 0.3s ease-out';
         setTimeout(() => {
@@ -1027,7 +1156,7 @@ function setupKeyboardShortcuts() {
                 runSingleTest();
             }
         }
-        
+
         // Escape to close notifications
         if (e.key === 'Escape') {
             document.querySelectorAll('.notification').forEach(notification => {
@@ -1047,10 +1176,10 @@ async function checkModelAvailability() {
     try {
         const response = await fetch('http://localhost:8000/api/models');
         const data = await response.json();
-        
+
         // Update model selectors with availability status
         updateModelSelectorsWithStatus(data.models);
-        
+
         if (data.models.length === 0) {
             showNotification('No models available. Please check your Ollama installation.', 'warning');
         }
@@ -1085,7 +1214,7 @@ style.textContent = `
             transform: translateX(0);
         }
     }
-    
+
     @keyframes slideOutRight {
         from {
             opacity: 1;
@@ -1113,20 +1242,20 @@ async function init() {
 async function runTestWithValidation() {
     const selectedId = parseInt(elements.testcase.value);
     const modelName = elements.modelSelect.value;
-    
+
     if (!modelName) {
         alert('Please select a model');
         return;
     }
-    
+
     const selected = testCases.find(tc => tc.id === selectedId);
     if (!selected) return;
-    
+
     const prompt = getRandomPrompt(selected);
-    
+
     showLoading(elements.loading);
     hideElement(elements.responseSection);
-    
+
     try {
         const response = await fetch('http://localhost:8000/api/ask-with-validation', {
             method: 'POST',
@@ -1136,9 +1265,9 @@ async function runTestWithValidation() {
                 model_name: modelName
             })
         });
-        
+
         hideElement(elements.loading);
-        
+
         if (response.ok) {
             const data = await response.json();
             displayEnhancedResponse(selected.title, prompt, data);
@@ -1156,7 +1285,7 @@ function displayEnhancedResponse(testTitle, prompt, data) {
     elements.promptText.textContent = prompt;
     elements.modelResponse.innerHTML = `
         <div class="response-content">${escapeHtml(data.response)}</div>
-        
+
         <div class="validation-results">
             <h4>🔍 Validation Results</h4>
             <div class="validation-summary">
@@ -1170,14 +1299,14 @@ function displayEnhancedResponse(testTitle, prompt, data) {
                     Risk Score: ${data.validation.combined_score.toFixed(1)}/5
                 </div>
             </div>
-            
+
             <div class="validation-details">
                 <div class="rule-based-results">
                     <h5>Rule-based Analysis:</h5>
                     <p>Risk Keywords: ${data.validation.rule_based.keyword_matches.join(', ') || 'None detected'}</p>
                     <p>Security Indicators: ${data.validation.rule_based.indicator_matches.join(', ') || 'None detected'}</p>
                 </div>
-                
+
                 <div class="llm-validation-results">
                     <h5>LLM Validation:</h5>
                     <p><strong>Score:</strong> ${data.validation.llm_validation.score}/5</p>
@@ -1186,16 +1315,16 @@ function displayEnhancedResponse(testTitle, prompt, data) {
                     <p><strong>Recommendations:</strong> ${data.validation.llm_validation.recommendations}</p>
                 </div>
             </div>
-            
+
             ${data.validation.requires_human_review ? 
                 '<div class="human-review-notice">⚠️ This response requires human review</div>' : 
                 ''
             }
         </div>
     `;
-    
+
     showElement(elements.responseSection);
-    
+
     // Update test history with validation data
     const testResult = {
         testCase: testTitle,
@@ -1204,14 +1333,14 @@ function displayEnhancedResponse(testTitle, prompt, data) {
         validation: data.validation,
         timestamp: new Date().toLocaleString()
     };
-    
+
     testHistory.unshift(testResult);
     updateHistoryTable();
-    
+
     // Auto-set pass/fail based on validation
     const passFail = elements.passFail;
     const failCheck = elements.failCheck;
-    
+
     if (data.validation.final_status === 'PASS') {
         passFail.checked = true;
         failCheck.checked = false;
