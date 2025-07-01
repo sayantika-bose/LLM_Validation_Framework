@@ -90,6 +90,16 @@
             <div id="multiResponseSection" class="response-section" style="display:none;">
                 <h3>📊 Model Comparison Results</h3>
                 <div id="comparisonResults"></div>
+
+                <!-- Human Review Queue for Multi-Model -->
+                <div id="multiReviewQueue" style="display:none;">
+                    <h3>👤 Human Review Queue</h3>
+                    <div class="review-controls">
+                        <button id="reviewAllMulti" class="btn secondary">📋 Review All Pending</button>
+                        <span class="review-count" id="multiReviewCount">0 items pending review</span>
+                    </div>
+                    <div id="multiReviewContent" class="review-items"></div>
+                </div>
             </div>
         </div>
 
@@ -119,7 +129,18 @@
             <div id="batchResults" class="batch-results" style="display:none;">
                 <h3>📈 Batch Test Results</h3>
                 <div id="batchSummary" class="summary-cards"></div>
-                <div id="batchDetails" class="batch-details"></div>
+                <div id="batchDetails"></div>
+
+                <!-- Human Review Queue for Batch Testing -->
+                <div id="batchReviewQueue" style="display:none;">
+                    <h3>👤 Human Review Queue</h3>
+                    <div class="review-controls">
+                        <button id="reviewAllBatch" class="btn secondary">📋 Review All Pending</button>
+                        <button id="exportReview" class="btn secondary">📄 Export Review Report</button>
+                        <span class="review-count" id="batchReviewCount">0 items pending review</span>
+                    </div>
+                    <div id="batchReviewContent" class="review-items"></div>
+                </div>
             </div>
         </div>
 
